@@ -1,10 +1,11 @@
 import './App.css';
+import { Outlet } from 'react-router-dom';
 
 function App() {
   return (
-    <div style={{ textAlign: "center", marginTop: "50px" }}>
-      <h1>🎉 배포 성공 🎉</h1>
-      <p>해커톤 화이팅!</p>
+    <div>
+      <h1>WETOWN 프로젝트</h1>
+      <Outlet />
     </div>
   );
 }
