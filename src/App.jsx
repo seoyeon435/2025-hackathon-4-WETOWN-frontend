@@ -1,17 +1,16 @@
-import './App.css';
-import { Outlet } from 'react-router-dom';
-import Header from './components/Header/Header';
-import BottomNav from './components/BottomNav/BottomNav';
+import React from "react";
+import { Outlet } from "react-router-dom";
+import Header from "./components/Header/Header";            // 경로는 프로젝트에 맞게
+import BottomNav from "./components/BottomNav/BottomNav";  // 경로는 프로젝트에 맞게
 
-
-function App() {
+const App = () => {
   return (
-    <div>
+    <>
       <Header />
-      <Outlet />
+      <Outlet />        {/* 자식 라우트(Home, Survey 등)가 여기 렌더링됨 */}
       <BottomNav />
-    </div>
+    </>
   );
-}
+};
 
 export default App;
