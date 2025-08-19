@@ -1,42 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import styled from "styled-components";
+import axios from "axios";
 import SearchBar from "../../components/Board/SearchBar";
 import CategoryButtons2 from "../../components/CategoryButton2";
 import AdBanner from "../../components/Board/AdBanner";
 import PostList from "../../components/Board/PostList";
-// 정적 목데이터 (UI 확인용)
-const MOCK_POSTS = [
-    {
-        id: 1,
-        writer: "홍길동",
-        title: "정릉3동 가로등 고장",
-        content: "밤에 너무 어두워요.",
-        created_at: "2025-08-14T11:32:10.123Z",
-        category: "치안/안전",
-        dong: "정릉3동",
-        image: null,
-    },
-    {
-        id: 2,
-        writer: "김철수",
-        title: "쓰레기 무단 투기",
-        content: "길모퉁이에 쓰레기가 쌓여있어요.",
-        created_at: "2025-08-15T09:20:00.000Z",
-        category: "환경/청결",
-        dong: "광희동",
-        image: null,
-    },
-];
 
 const BoardPage = () => {
+    const [posts, setPosts] = useState([]);
     const [search, setSearch] = useState("");
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [selectedDong, setSelectedDong] = useState("");
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
 
-    // 정적 UI 단계에서는 화면 표시만. (로컬 필터만 간단 적용)
-    const filtered = MOCK_POSTS.filter((p) => {
+    // ✅ 백엔드에서 글 목록 불러오기
+    useEffect(() => {
+        const fetchPosts = async () => {
+            try {
+                const res = await axios.get(`${import.meta.env.VITE_BASE_URL}/posts`);
+                console.log("불러온 데이터:", res.data);
+                setPosts(res.data); // 👉 백엔드에서 반환하는 데이터 구조에 맞게 수정
+            } catch (err) {
+                console.error("게시글 불러오기 실패:", err);
+            }
+        };
+        fetchPosts();
+    }, []);
+
+    // 🔎 검색/필터링
+    const filtered = posts.filter((p) => {
         const matchCategory = !selectedCategory || p.category === selectedCategory;
         const q = search.trim();
         const matchSearch =
@@ -47,7 +40,6 @@ const BoardPage = () => {
             p.category.includes(q);
         const matchDong = !selectedDong || p.dong === selectedDong;
 
-        // 날짜 필터 
         const created = new Date(p.created_at).toISOString().slice(0, 10);
         const afterStart = !startDate || created >= startDate;
         const beforeEnd = !endDate || created <= endDate;
@@ -57,15 +49,14 @@ const BoardPage = () => {
 
     return (
         <Page>
-            <SearchBar value={search} onChange={setSearch} onSearch={() => { /* 정적 단계: 동작 없음 */ }} />
-            <div style={{ marginTop: "0px" , marginBottom: "45px"}}>
+            <SearchBar value={search} onChange={setSearch} onSearch={() => {}} />
+
+            <div style={{ marginTop: "0px", marginBottom: "45px" }}>
                 <CategoryButtons2
                     selectedCategory={selectedCategory}
                     onClick={setSelectedCategory}
-                    
                 />
             </div>
-            
 
             <Filters>
                 <Select value={selectedDong} onChange={(e) => setSelectedDong(e.target.value)}>
@@ -88,6 +79,7 @@ const BoardPage = () => {
 
             <AdBanner />
 
+            {/* 🔥 실제 데이터로 바뀐 PostList */}
             <PostList posts={filtered} />
         </Page>
     );
