@@ -5,13 +5,12 @@ export const Wrap = styled.div`
   max-width: 420px;
   margin: 0 auto;
   padding-bottom: 96px;
-  background: #f7f7f7;
+  background:rgb(255, 255, 255);
   min-height: 100vh;
 `;
 
 export const Header = styled.div`
   position: sticky;
-  top: 56px;
   z-index: 10;
   display: flex;
   align-items: center;
@@ -39,7 +38,6 @@ export const Brand = styled.div`
 `;
 
 export const Card = styled.div`
-  top: 56px;
   position: relative;
   background: #fff;
   margin: 8px 12px;
@@ -169,49 +167,35 @@ export const IconBtn = styled.button`
 `;
 
 export const CommentsWrap = styled.div`
-  margin: 8px 12px 100px;
+  margin: 8px 20px 10px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 `;
 
 export const CommentItem = styled.div`
-  display: grid;
-  grid-template-columns: 56px 1fr auto;
-  gap: 8px;
-  align-items: flex-start;
-  padding: ${(p) => (p.nested ? "0 0 0 16px" : "0")};
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f3f3;
 `;
 
 export const No = styled.div`
-  color: #666;
-  font-size: 12px;
-  line-height: 28px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #222;
+  margin-right: 8px;
+  flex-shrink: 0;
 `;
 
 export const Bubble = styled.div`
-  background: ${(p) => (p.nested ? "#f3f5f6" : "#fff")};
-  border: 1px solid #e7e7e7;
-  border-radius: 8px;
-  padding: 8px 10px;
+  flex: 1;
+  font-size: 14px;
   color: #333;
-  line-height: 1.5;
 `;
 
-export const Vote = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-`;
 
-export const Up = styled.div`
-  color: #2aa36a;
-`;
-
-export const Down = styled.div`
-  color: #d75a5a;
-`;
 
 export const CommentBar = styled.div`
   position: fixed;
@@ -225,6 +209,7 @@ export const CommentBar = styled.div`
   padding: 10px 12px;
   background: #f7f7f7;
   border-top: 1px solid #e8e8e8;
+  z-index: 1000;
 `;
 
 export const Input = styled.input`

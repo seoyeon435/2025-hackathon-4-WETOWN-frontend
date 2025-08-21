@@ -73,7 +73,7 @@ const DetailPage = () => {
                     <S.MetaLeft>
                         <S.MetaItem highlight>
                             <AiOutlineLike />
-                            <span>{post.likesCount ?? 0}</span>
+                            <span>{post.likes_count ?? 0}</span>
                         </S.MetaItem>
                         <S.MetaItem>
                             <FiMessageCircle />
@@ -93,10 +93,6 @@ const DetailPage = () => {
                     <S.CommentItem key={c.id}>
                         <S.No>익명 {idx + 1}</S.No>
                         <S.Bubble>{c.content}</S.Bubble>
-                        <S.Vote>
-                            <S.Up>▲ 0</S.Up>
-                            <S.Down>▼ 0</S.Down>
-                        </S.Vote>
                     </S.CommentItem>
                 ))}
             </S.CommentsWrap>

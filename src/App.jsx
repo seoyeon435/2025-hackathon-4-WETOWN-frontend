@@ -14,8 +14,8 @@ const Layout = styled.div`
 const Content = styled.main`
   flex: 1; 
   overflow-y: auto;     /* 내용만 스크롤 */
-  padding-top: 56px;    /* Header 높이만큼 띄우기 */
-  padding-bottom: 56px; /* BottomNav 높이만큼 띄우기 */
+  padding-top: 70px;    /* Header 높이만큼 띄우기 */
+  padding-bottom: 92px; /* BottomNav 높이만큼 띄우기 */
 `;
 
 

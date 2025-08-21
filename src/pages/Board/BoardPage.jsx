@@ -14,13 +14,13 @@ const BoardPage = () => {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
 
-    // ✅ 백엔드에서 글 목록 불러오기
+    // 백엔드에서 글 목록 불러오기
     useEffect(() => {
         const fetchPosts = async () => {
             try {
                 const res = await axios.get(`${import.meta.env.VITE_BASE_URL}/posts`);
                 console.log("불러온 데이터:", res.data);
-                setPosts(res.data); // 👉 백엔드에서 반환하는 데이터 구조에 맞게 수정
+                setPosts(res.data); 
             } catch (err) {
                 console.error("게시글 불러오기 실패:", err);
             }
@@ -28,7 +28,7 @@ const BoardPage = () => {
         fetchPosts();
     }, []);
 
-    // 🔎 검색/필터링
+    // 검색/필터링
     const filtered = posts.filter((p) => {
         const matchCategory = !selectedCategory || p.category === selectedCategory;
         const q = search.trim();
@@ -89,7 +89,7 @@ export default BoardPage;
 
 /* ---------- styled ---------- */
 const Page = styled.div`
-    margin-top: 70px; /* 헤더 높이 고려 */
+    margin-top: 0; /* 헤더 높이 고려 */
 `;
 
 const Filters = styled.div`
