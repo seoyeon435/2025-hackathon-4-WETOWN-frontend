@@ -59,7 +59,9 @@ const HomePage = () => {
     "놀이터",
   ];
 
-  const handleReport = () => {};
+  const handleReport = () => {
+    navigate("/post");
+  };
   const handleSurvey = () => {};
 
   const handleSearch = (e) => {
