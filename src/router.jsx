@@ -10,6 +10,7 @@ import PostPreview from "./pages/Write/PostPreview";
 import MapPage from "./pages/Map/MapPage";
 import BoardPage from "./pages/Board/BoardPage";
 import NewsPage from "./pages/News/NewsPage";
+import DetailPage from "./pages/DetailPage/DetailPage";
 
 
 
@@ -26,6 +27,7 @@ const router = createBrowserRouter([
             { path: "/map", element: <MapPage /> },
             { path: "/board", element: <BoardPage /> },
             { path: "/news", element: <NewsPage /> },
+            { path: "/detail/:postId", element: <DetailPage /> },
         ],
         },
 ]);
