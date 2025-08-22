@@ -9,13 +9,14 @@ import WritePage from "./pages/Write/WritePage";
 import MapPage from "./pages/Map/MapPage";
 import BoardPage from "./pages/Board/BoardPage";
 import NewsPage from "./pages/News/NewsPage";
+import RootLayout from './layouts/RootLayout';
 
 
 
 const router = createBrowserRouter([
     {
         path: "/",
-        element: <App />,
+        element: <RootLayout />,
         children: [
             { path: "/", element: <HomePage /> },
             { path: "/survey", element: <SurveyPage />},
