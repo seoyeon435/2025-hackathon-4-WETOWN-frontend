@@ -15,6 +15,7 @@ const MapPage = () => {
     const [posts, setPosts] = useState([]);
     const [selectedPost, setSelectedPost] = useState(null); // ✅ 마커 클릭한 글
 
+
     useEffect(() => {
         const fetchPosts = async () => {
             try {
@@ -33,6 +34,7 @@ const MapPage = () => {
             <KakaoMap posts={posts} onMarkerClick={setSelectedPost} />
 
             {/* 검색창 */}
+
             <div
                 style={{
                     position: "absolute",
@@ -43,6 +45,7 @@ const MapPage = () => {
                     zIndex: 10,
                 }}
             >
+
                 <SearchBar
                     value={search}
                     onChange={setSearch}
@@ -88,7 +91,7 @@ const BottomCard = styled.div`
   width: 90%;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   padding: 14px;
   z-index: 20;
 
@@ -121,5 +124,6 @@ const BottomCard = styled.div`
     border-radius: 6px;
     cursor: pointer;
     font-size: 13px;
+
   }
 `;
