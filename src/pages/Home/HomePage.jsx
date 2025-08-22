@@ -1,4 +1,3 @@
-// src/pages/Home/HomePage.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { FiSearch } from "react-icons/fi";
 import { RiUserVoiceLine, RiMailOpenLine } from "react-icons/ri";

@@ -3,7 +3,7 @@ import styled from "styled-components";
 
 const categories = ["불편 / 민원", "동네 바람", "정보 공유", "자유 의견"];
 
-const CategoryButtons = ({ selectedCategory, onClick }) => {
+const CategoryButtons2 = ({ selectedCategory, onClick }) => {
     return (
         <Wrapper $top={top}>
             {categories.map((category) => (
@@ -19,12 +19,12 @@ const CategoryButtons = ({ selectedCategory, onClick }) => {
     );
 };
 
-export default CategoryButtons;
+export default CategoryButtons2;
 
 
 const Wrapper = styled.div`
   position: absolute;
-  top: 70px; 
+  top: 128px; 
   left: 50%;
   transform: translateX(-50%);
   width: 90%;
@@ -37,7 +37,7 @@ const Wrapper = styled.div`
 
 
 const Button = styled.button`
-    padding: 5px 12px;
+    padding: 5px 13px;
     border: 1px solid #ccc;
     border-radius: 20px;
     cursor: pointer;
@@ -47,10 +47,10 @@ const Button = styled.button`
     font-size: 12px;
     transition: 0.2s all;
 
-    background: ${(props) => (props.selected ? "#4B6BFB" : "#fff")};
+    background: ${(props) => (props.selected ? "#00B890" : "#fff")};
     color: ${(props) => (props.selected ? "#fff" : "#333")};
 
     &:hover {
-        background: ${(props) => (props.selected ? "#3a56d4" : "#f5f5f5")};
+        background: ${(props) => (props.selected ? "#00B890" : "#f5f5f5")};
     }
 `;
