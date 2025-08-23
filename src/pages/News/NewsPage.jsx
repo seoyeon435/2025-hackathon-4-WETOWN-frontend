@@ -1,4 +1,3 @@
-// src/pages/News/NewsPage.jsx
 import styled from "styled-components";
 import NewsCard from "../../components/News/NewsCard";
 import { useNewsList } from "../../hooks/News/useNewsList";
