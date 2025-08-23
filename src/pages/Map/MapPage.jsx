@@ -1,4 +1,3 @@
-// src/pages/Map/MapPage.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CategoryButtons from "../../components/CategoryButton";
