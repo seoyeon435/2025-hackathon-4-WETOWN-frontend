@@ -100,6 +100,12 @@ export default function HomePage() {
     setOpenSuggest(false);
   };
 
+  // 게시글 상세로 이동
+  const goPostDetail = (id) => {
+    if (!id) return;
+    navigate(`/detail/${id}`);
+  };
+
   return (
     <HomeWrap>
       {/* 1) 검색 & 액션 버튼 */}
@@ -146,46 +152,57 @@ export default function HomePage() {
 
       {/* 2) 인기 글 */}
       <Section>
-        <SectionTitle>
-          <span>인기 글</span><span className="hot" aria-hidden>🔥</span>
-        </SectionTitle>
+      <SectionTitle>
+        <span>인기 글</span><span className="hot" aria-hidden>🔥</span>
+      </SectionTitle>
 
-        <PopularList>
-          {(loading.posts ? Array.from({ length: 4 }) : popularPosts).map((post, idx) => {
-            if (loading.posts) {
-              return (
-                <PopularItem key={idx} className="skeleton">
-                  <div><ItemTitle>&nbsp;</ItemTitle><ItemMeta>&nbsp;</ItemMeta></div>
-                  <ItemRight />
-                </PopularItem>
-              );
-            }
-
-            const title = post?.title ?? "";
-            const category = post?.category ?? post?.tag ?? "";
-            const location = post?.location ?? post?.area ?? "";
-            const date = post?.date ?? (post?.created_at?.slice(0, 10) ?? "");
-            const up = post?.up ?? post?.likes ?? 0;
-            const down = post?.down ?? post?.comments ?? 0;
-
+      <PopularList>
+        {(loading.posts ? Array.from({ length: 4 }) : popularPosts).map((post, idx) => {
+          if (loading.posts) {
             return (
-              <PopularItem key={post.id ?? idx}>
-                <div>
-                  <ItemTitle>“ {title} ”</ItemTitle>
-                  <ItemMeta>[{category}] · {location} · {date}</ItemMeta>
-                </div>
-                <ItemRight>
-                  <Vote className="upvote"><Thumb aria-hidden><AiOutlineLike /></Thumb><span className="count">{up}</span></Vote>
-                  <Vote className="comment"><Thumb aria-hidden><BiChat /></Thumb><span className="count">{down}</span></Vote>
-                </ItemRight>
+              <PopularItem key={idx} className="skeleton">
+                <div><ItemTitle>&nbsp;</ItemTitle><ItemMeta>&nbsp;</ItemMeta></div>
+                <ItemRight />
               </PopularItem>
             );
-          })}
-        </PopularList>
-        {error.posts && (
-          <div style={{ color: "#d00", marginTop: 8, fontSize: 12 }}>{error.posts}</div>
-        )}
-      </Section>
+          }
+
+          const title = post?.title ?? "";
+          const category = post?.category ?? post?.tag ?? "";
+          const location = post?.location ?? post?.area ?? "";
+          const date = post?.date ?? (post?.created_at?.slice(0, 10) ?? "");
+          const up = post?.up ?? post?.likes ?? 0;
+          const down = post?.down ?? post?.comments ?? 0;
+          const pid = post?.id ?? post?.post_id; // <- 안전하게
+
+          return (
+            <PopularItem
+              key={pid ?? idx}
+              role="button"
+              tabIndex={0}
+              onClick={() => goPostDetail(pid)}
+              onKeyDown={(e) => (e.key === "Enter" ? goPostDetail(pid) : null)}
+              style={{ cursor: "pointer" }}   // 필요 시
+              aria-label={`게시글 보기: ${title}`}
+              title={title}
+            >
+              <div>
+                <ItemTitle>“ {title} ”</ItemTitle>
+                <ItemMeta>[{category}] · {location} · {date}</ItemMeta>
+              </div>
+              <ItemRight>
+                <Vote className="upvote"><Thumb aria-hidden><AiOutlineLike /></Thumb><span className="count">{up}</span></Vote>
+                <Vote className="comment"><Thumb aria-hidden><BiChat /></Thumb><span className="count">{down}</span></Vote>
+              </ItemRight>
+            </PopularItem>
+          );
+        })}
+      </PopularList>
+
+      {error.posts && (
+        <div style={{ color: "#d00", marginTop: 8, fontSize: 12 }}>{error.posts}</div>
+      )}
+    </Section>
 
       {/* 3) 최근 뉴스 */}
       <Section>
