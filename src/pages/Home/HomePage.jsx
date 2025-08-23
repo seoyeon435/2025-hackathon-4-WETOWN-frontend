@@ -80,7 +80,6 @@ export default function HomePage() {
   const handleReport = () => navigate("/post");
   const handleSurvey = () => navigate("/survey");
 
-
   const handleSearch = (e) => {
     e.preventDefault();
     const q = query.trim();
@@ -98,6 +97,7 @@ export default function HomePage() {
   const onChipClick = (text) => {
     setQuery(text);
     setOpenSuggest(false);
+
   };
 
   // 게시글 상세로 이동
@@ -203,6 +203,7 @@ export default function HomePage() {
         <div style={{ color: "#d00", marginTop: 8, fontSize: 12 }}>{error.posts}</div>
       )}
     </Section>
+
 
       {/* 3) 최근 뉴스 */}
       <Section>
