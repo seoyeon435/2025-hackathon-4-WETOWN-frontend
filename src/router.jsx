@@ -10,6 +10,7 @@ import PostPreview from "./pages/Write/PostPreview";
 import MapPage from "./pages/Map/MapPage";
 import BoardPage from "./pages/Board/BoardPage";
 import NewsPage from "./pages/News/NewsPage";
+import RootLayout from './layouts/RootLayout';
 import NewsDetailPage from "./pages/News/NewsDetailPage";
 import DetailPage from "./pages/DetailPage/DetailPage";
 
@@ -18,7 +19,7 @@ import DetailPage from "./pages/DetailPage/DetailPage";
 const router = createBrowserRouter([
     {
         path: "/",
-        element: <App />,
+        element: <RootLayout />,
         children: [
             { path: "/", element: <HomePage /> },
             { path: "/survey", element: <SurveyPage />},
