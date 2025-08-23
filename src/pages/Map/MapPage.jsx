@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+
+import { useEffect, useState } from "react";
+
+
 import { useNavigate } from "react-router-dom";
 import CategoryButtons from "../../components/CategoryButton";
 import KakaoMap from "../../components/KakaoMap";
@@ -27,12 +30,8 @@ const MapPage = () => {
     fetchPosts();
   }, []);
 
-  // 카테고리 버튼 클릭 핸들러 (같은 걸 누르면 해제)
-  const handleCategoryClick = (cat) => {
-    setSelectedCategory((prev) => (prev === cat ? null : cat));
-  };
 
-<<<<<<< HEAD
+
         {/* 카테고리 버튼 */}
         <CategoryButtons
             selectedCategory={selectedCategory}
@@ -41,48 +40,6 @@ const MapPage = () => {
         />
         </div>
     );
-=======
-  // 검색 버튼/엔터 시 동작 (컨트롤드 입력이라 별도 로직 없어도 됨)
-  const handleSearch = () => {
-    // 필요 시 서버 검색 호출 등으로 교체 가능
-    console.log("검색어:", search);
-  };
-
-  // 지도/목록에 표시할 필터링된 글
-  const filteredPosts = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return posts.filter((p) => {
-      const byCategory = selectedCategory ? p.category === selectedCategory : true;
-      const byQuery = q
-        ? [p.title, p.content, p.address]
-            .filter(Boolean)
-            .some((f) => String(f).toLowerCase().includes(q))
-        : true;
-      return byCategory && byQuery;
-    });
-  }, [posts, selectedCategory, search]);
-
-  return (
-    <div style={{ position: "relative", width: "100%", height: "100vh" }}>
-      {/* 지도 */}
-      <KakaoMap posts={filteredPosts} onMarkerClick={setSelectedPost} />
-
-      {/* 검색창 */}
-      <div
-        style={{
-          position: "absolute",
-          top: "10px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "95%",
-          zIndex: 10,
-        }}
-      >
-        <SearchBar value={search} onChange={setSearch} onSearch={handleSearch} />
-      </div>
-
-      {/* 카테고리 버튼 */}
-      <CategoryButtons selectedCategory={selectedCategory} onClick={handleCategoryClick} />
 
       {/* 마커 클릭 시 하단 카드 띄우기 */}
       {selectedPost && (
@@ -99,7 +56,6 @@ const MapPage = () => {
       )}
     </div>
   );
->>>>>>> upstream/main
 };
 
 export default MapPage;
