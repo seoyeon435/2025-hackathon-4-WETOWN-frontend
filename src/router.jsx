@@ -15,7 +15,6 @@ import NewsDetailPage from "./pages/News/NewsDetailPage";
 import DetailPage from "./pages/DetailPage/DetailPage";
 
 
-
 const router = createBrowserRouter([
     {
         path: "/",
