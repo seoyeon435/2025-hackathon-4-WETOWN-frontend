@@ -1,6 +1,6 @@
 // router.jsx
 import { createBrowserRouter } from 'react-router-dom';
-import App from './App';
+// import App from './App';
 
 import HomePage from "./pages/Home/HomePage";    
 import SurveyPage from "./pages/Home/SurveyPage";
