@@ -32,6 +32,16 @@ const MapPage = () => {
     setSelectedCategory((prev) => (prev === cat ? null : cat));
   };
 
+<<<<<<< HEAD
+        {/* 카테고리 버튼 */}
+        <CategoryButtons
+            selectedCategory={selectedCategory}
+            onClick={handleCategoryClick}
+            
+        />
+        </div>
+    );
+=======
   // 검색 버튼/엔터 시 동작 (컨트롤드 입력이라 별도 로직 없어도 됨)
   const handleSearch = () => {
     // 필요 시 서버 검색 호출 등으로 교체 가능
@@ -89,6 +99,7 @@ const MapPage = () => {
       )}
     </div>
   );
+>>>>>>> upstream/main
 };
 
 export default MapPage;

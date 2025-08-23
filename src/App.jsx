@@ -18,7 +18,6 @@ const Content = styled.main`
   padding-bottom: 92px; /* BottomNav 높이만큼 띄우기 */
 `;
 
-
 const App = () => {
   return (
     <Layout>
