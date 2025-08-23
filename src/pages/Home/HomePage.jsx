@@ -80,7 +80,6 @@ export default function HomePage() {
   const handleReport = () => navigate("/post");
   const handleSurvey = () => navigate("/survey");
 
-
   const handleSearch = (e) => {
     e.preventDefault();
     const q = query.trim();
