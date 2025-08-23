@@ -1,7 +1,7 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
-import Header from "./components/Header/Header";            // 경로는 프로젝트에 맞게
-import BottomNav from "./components/BottomNav/BottomNav";  // 경로는 프로젝트에 맞게
+import Header from "./components/Header/Header";
+import BottomNav from "./components/BottomNav/BottomNav"; 
 
 const App = () => {
   return (

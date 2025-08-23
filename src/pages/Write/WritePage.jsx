@@ -1,18 +1,21 @@
 // src/pages/Write/WritePage.jsx
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Wrap, Section, LabelRow, ChipGroup, Chip, SubNote,
-  MapBox, MapPin, AddressInput, NextFab,
+  MapBox, AddressInput, NextFab,
   Field, Input, TextArea, DangerNote,
   UploadGrid, UploadSlot, CameraBadge, RegisterBtn,
   SuggestTitle, SuggestChips, SuggestChip,
   DoneWrap, DoneIcon, DoneText,
   TopInline, BackBtn,
-  ViewPostBtn // 완료 화면의 내가 작성한 글 보기 버튼
+  ViewPostBtn
 } from "./write.styled";
-import { FiArrowRight, FiMapPin, FiCamera, FiChevronLeft } from "react-icons/fi";
+import { FiArrowRight, FiCamera, FiChevronLeft } from "react-icons/fi";
 import reportDone from "../../components/assets/reportDone.svg";
+
+// 훅
+import useKakaoAddressPicker from "../../hooks/Map/useKakaoAddressPicker"
 
 const CATEGORIES = ["불편/민원", "동네 바람", "정보 공유", "자유 의견"];
 const AREAS = ["장충동", "명동", "광희동", "약수동", "을지로동", "필동", "회현동", "청구동", "신당동", "황학동"];
@@ -23,10 +26,14 @@ const WritePage = () => {
   // step: select -> compose -> done
   const [step, setStep] = useState("select");
 
-  // 기본 선택 해제 (빈 값으로 시작)
+  // 기본 선택 해제
   const [cat, setCat] = useState("");
   const [area, setArea] = useState("");
   const [addr, setAddr] = useState("");
+
+  // 지도 좌표(초기: 서울 시청 인근)
+  const [mapLat, setMapLat] = useState(37.5665);
+  const [mapLng, setMapLng] = useState(126.9780);
 
   // step2
   const [author, setAuthor] = useState("");
@@ -35,7 +42,7 @@ const WritePage = () => {
   const [images, setImages] = useState([]); // File[]
   const fileRef = useRef(null);
 
-  // ✅ 등록 완료 후 미리보기로 넘길 데이터 저장
+  // 등록 완료 후 미리보기
   const [createdPost, setCreatedPost] = useState(null);
 
   const canNext = !!cat && !!area;
@@ -47,12 +54,50 @@ const WritePage = () => {
       : ["# 불편 신고", "# 제설 요청", "# 위험 지역"];
   }, [cat]);
 
+  // 주소 검색 + 지도/핀 훅 (select 단계에서만 활성화)
+  const {
+    ready, error,
+    query, setQuery,
+    suggestions, onChangeQuery, pickSuggestion,
+    searchByAddress, setCenter,
+  } = useKakaoAddressPicker({
+    containerId: "kakao-map",
+    initialLat: mapLat,
+    initialLng: mapLng,
+    level: 3,
+    active: step === "select",
+  });
+
+  // 외부 좌표 상태 변경을 지도에 반영
+  useEffect(() => {
+    if (ready) setCenter(mapLat, mapLng);
+  }, [ready, mapLat, mapLng, setCenter]);
+
+  // 주소 입력 → 엔터로 확정(정확주소)
+  const handleEnterAddress = async (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const r = await searchByAddress();
+    if (r) {
+      setMapLat(r.lat);
+      setMapLng(r.lng);
+      setAddr(r.address);
+    }
+  };
+
+  // 제안 클릭 시 처리
+  const handlePick = (item) => {
+    const r = pickSuggestion(item);
+    setMapLat(r.lat);
+    setMapLng(r.lng);
+    setAddr(r.address);
+  };
+
   const onPickFiles = (ev) => {
     const files = Array.from(ev.target.files || []).slice(0, Math.max(0, 10 - images.length));
     if (files.length) setImages((prev) => [...prev, ...files]);
     ev.target.value = "";
   };
-
   const onRemoveImage = (idx) => setImages((prev) => prev.filter((_, i) => i !== idx));
 
   const goNext = () => {
@@ -62,11 +107,9 @@ const WritePage = () => {
 
   const onSubmit = (e) => {
     e.preventDefault();
-    // TODO: API 전송 위치
-    const id = Date.now().toString(); // 데모용 ID
+    const id = Date.now().toString();
     const imgUrls = images.map((f) => URL.createObjectURL(f));
 
-    // ✅ 작성된 글 데이터 저장 (완료화면 → 미리보기 이동용)
     setCreatedPost({
       id,
       category: cat,
@@ -77,6 +120,8 @@ const WritePage = () => {
       body,
       images: imgUrls,
       createdAt: new Date().toISOString(),
+      lat: mapLat,
+      lng: mapLng,
     });
 
     setStep("done");
@@ -95,8 +140,6 @@ const WritePage = () => {
             <br />
             당신의 한 마디가 우리 동네를 움직입니다.
           </DoneText>
-
-          {/* 작성된 글 보기 */}
           <ViewPostBtn
             type="button"
             onClick={() => navigate("/post/preview", { state: { post: createdPost } })}
@@ -114,7 +157,6 @@ const WritePage = () => {
     return (
       <Wrap as="form" onSubmit={onSubmit}>
         <Section>
-          {/* 작성 화면 상단 뒤로가기 (1단계로 복귀) */}
           <TopInline>
             <BackBtn type="button" aria-label="뒤로가기" onClick={() => setStep("select")}>
               <FiChevronLeft />
@@ -123,20 +165,12 @@ const WritePage = () => {
 
           <Field>
             <label>작성자</label>
-            <Input
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              placeholder="이름 / 별명 입력"
-            />
+            <Input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="이름 / 별명 입력" />
           </Field>
 
           <Field>
             <label>제목</label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="제목을 입력해주세요."
-            />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목을 입력해주세요." />
           </Field>
 
           <Field>
@@ -169,6 +203,7 @@ const WritePage = () => {
                   </UploadSlot>
                 );
               })}
+
               <input
                 ref={fileRef}
                 type="file"
@@ -221,24 +256,110 @@ const WritePage = () => {
           ))}
         </ChipGroup>
 
-        <LabelRow style={{ marginTop: 22 }}>
-          정확한 위치를 입력해주세요 (선택 사항)
-        </LabelRow>
-        <AddressInput
-          value={addr}
-          onChange={(e) => setAddr(e.target.value)}
-          placeholder="위치 입력"
-        />
+        <LabelRow style={{ marginTop: 22 }}>정확한 위치를 입력해주세요 (선택 사항)</LabelRow>
 
-        <MapBox aria-label="지도 미리보기">
-          {/* 실제 지도가 아니고, 디자인용 프리뷰. 향후 카카오/네이버 지도 연동 예정 */}
-          <div className="cross" />
-          {addr && (
-            <>
-              <MapPin><FiMapPin /></MapPin>
-              <div className="addr">{addr}</div>
-            </>
+        {/* 입력 + 자동완성 드롭다운 */}
+        <div style={{ position: "relative" }}>
+          <div style={{ display: "flex", gap: 8 }}>
+            <AddressInput
+              value={query}
+              onChange={(e) => onChangeQuery(e.target.value)}
+              onKeyDown={handleEnterAddress}
+              placeholder="예) 서울 중구 필동로 1길 30 / 남산타워 / 을지로입구역 등"
+              style={{ flex: 1 }}
+            />
+            <button
+              type="button"
+              onClick={async () => {
+                const r = await searchByAddress();
+                if (r) {
+                  setMapLat(r.lat);
+                  setMapLng(r.lng);
+                  setAddr(r.address);
+                }
+              }}
+              style={{
+                padding: "10px 14px",
+                borderRadius: 10,
+                border: "1px solid #ddd",
+                background: "#f6f7f9",
+                cursor: "pointer",
+                fontWeight: 600,
+              }}
+              title="주소 검색"
+            >
+              주소 검색
+            </button>
+          </div>
+
+          {/* 제안 목록 */}
+          {suggestions.length > 0 && (
+            <ul
+              style={{
+                position: "absolute",
+                zIndex: 20,
+                top: "44px",
+                left: 0,
+                right: 0,
+                background: "#fff",
+                border: "1px solid #e5e7eb",
+                borderRadius: 10,
+                boxShadow: "0 8px 20px rgba(0,0,0,0.08)",
+                overflow: "hidden",
+              }}
+            >
+              {suggestions.map((s, i) => (
+                <li
+                  key={`${s.lat}-${s.lng}-${i}`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handlePick(s)}
+                  style={{
+                    padding: "10px 12px",
+                    cursor: "pointer",
+                    borderBottom: i === suggestions.length - 1 ? "none" : "1px solid #f2f3f5",
+                  }}
+                >
+                  <div style={{ fontWeight: 600 }}>{s.label}</div>
+                  <div style={{ fontSize: 12, color: "#6b7280" }}>{s.address}</div>
+                </li>
+              ))}
+            </ul>
           )}
+        </div>
+
+        {/* 지도 영역 */}
+        <MapBox aria-label="지도">
+          <div
+            id="kakao-map"
+            style={{
+              width: "100%",
+              height: 260,
+              borderRadius: 12,
+              overflow: "hidden",
+              background: "#f4f6f8",
+              position: "relative",
+            }}
+          >
+            {!ready && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 14,
+                  color: "#6b7280",
+                }}
+              >
+                {error
+                  ? (error === "NO_APPKEY"
+                      ? "카카오 JavaScript 키가 설정되지 않았습니다 (.env 확인)"
+                      : "지도를 불러오지 못했습니다. (도메인 허용/키 종류/네트워크 확인)")
+                  : "지도를 로드중입니다. 잠시만 기다려주세요."}
+              </div>
+            )}
+          </div>
         </MapBox>
 
         <NextFab
