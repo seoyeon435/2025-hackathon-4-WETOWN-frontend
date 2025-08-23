@@ -1,4 +1,7 @@
+
 import { useEffect, useState } from "react";
+
+
 import { useNavigate } from "react-router-dom";
 import CategoryButtons from "../../components/CategoryButton";
 import KakaoMap from "../../components/KakaoMap";
@@ -7,76 +10,52 @@ import { getPosts } from "../../apis/posts";
 import styled from "styled-components";
 
 const MapPage = () => {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
 
-    const [selectedCategory, setSelectedCategory] = useState(null);
-    const [search, setSearch] = useState("");
-    const [posts, setPosts] = useState([]);
-    const [selectedPost, setSelectedPost] = useState(null); // ✅ 마커 클릭한 글
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [search, setSearch] = useState("");
+  const [posts, setPosts] = useState([]);
+  const [selectedPost, setSelectedPost] = useState(null); // 마커 클릭한 글
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const data = await getPosts();
+        setPosts(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("글 불러오기 실패:", err);
+        setPosts([]);
+      }
+    };
+    fetchPosts();
+  }, []);
 
 
-    useEffect(() => {
-        const fetchPosts = async () => {
-            try {
-                const data = await getPosts();
-                setPosts(data);
-            } catch (err) {
-                console.error("글 불러오기 실패:", err);
-            }
-        };
-        fetchPosts();
-    }, []);
 
-    return (
-        <div style={{ position: "relative", width: "100%", height: "100vh" }}>
-            {/* 지도 */}
-            <KakaoMap posts={posts} onMarkerClick={setSelectedPost} />
-
-            {/* 검색창 */}
-
-            <div
-                style={{
-                    position: "absolute",
-                    top: "10px",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    width: "95%",
-                    zIndex: 10,
-                }}
-            >
-
-                <SearchBar
-                    value={search}
-                    onChange={setSearch}
-                    onSearch={() => console.log("검색:", search)}
-                />
-            </div>
-
-            {/* 카테고리 버튼 */}
-            <CategoryButtons
-                selectedCategory={selectedCategory}
-                onClick={setSelectedCategory}
-            />
-
-            {/* ✅ 마커 클릭 시 하단 카드 띄우기 */}
-            {selectedPost && (
-                <BottomCard>
-                    <div className="meta">
-                        <strong>{selectedPost.category}</strong>
-                        <span>
-                            {new Date(selectedPost.created_at).toLocaleDateString()}
-                        </span>
-                    </div>
-                    <div className="meta2">
-                        <div className="title">"{selectedPost.title}"</div>
-                        <button onClick={() => navigate(`/detail/${selectedPost.id}`)}>
-                            전체 글 보기
-                        </button>
-                    </div>
-                </BottomCard>
-            )}
+        {/* 카테고리 버튼 */}
+        <CategoryButtons
+            selectedCategory={selectedCategory}
+            onClick={handleCategoryClick}
+            
+        />
         </div>
     );
+
+      {/* 마커 클릭 시 하단 카드 띄우기 */}
+      {selectedPost && (
+        <BottomCard>
+          <div className="meta">
+            <strong>{selectedPost.category}</strong>
+            <span>{new Date(selectedPost.created_at).toLocaleDateString()}</span>
+          </div>
+          <div className="meta2">
+            <div className="title">"{selectedPost.title}"</div>
+            <button onClick={() => navigate(`/detail/${selectedPost.id}`)}>전체 글 보기</button>
+          </div>
+        </BottomCard>
+      )}
+    </div>
+  );
 };
 
 export default MapPage;
@@ -90,7 +69,7 @@ const BottomCard = styled.div`
   width: 90%;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   padding: 14px;
   z-index: 20;
 
@@ -123,6 +102,5 @@ const BottomCard = styled.div`
     border-radius: 6px;
     cursor: pointer;
     font-size: 13px;
-
   }
 `;
