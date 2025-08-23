@@ -1,20 +1,38 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import CategoryButtons from "../../components/CategoryButton";
-import KakaoMap from "../../components/KakaoMap"; 
+import KakaoMap from "../../components/KakaoMap";
+import SearchBar from "../../components/Board/SearchBar";
+import { getPosts } from "../../apis/posts";
+import styled from "styled-components";
 
 const MapPage = () => {
-    const [selectedCategory, setSelectedCategory] = useState(null);
+  const navigate = useNavigate();
 
-    const handleCategoryClick = (category) => {
-        setSelectedCategory(category);
-        console.log("선택된 카테고리:", category);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [search, setSearch] = useState("");
+  const [posts, setPosts] = useState([]);
+  const [selectedPost, setSelectedPost] = useState(null); // 마커 클릭한 글
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const data = await getPosts();
+        setPosts(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("글 불러오기 실패:", err);
+        setPosts([]);
+      }
     };
+    fetchPosts();
+  }, []);
 
-    return (
-        <div style={{ position: "relative", width: "100%", height: "100vh" }}>
-            {/* 지도 */}
-        <KakaoMap />
+  // 카테고리 버튼 클릭 핸들러 (같은 걸 누르면 해제)
+  const handleCategoryClick = (cat) => {
+    setSelectedCategory((prev) => (prev === cat ? null : cat));
+  };
 
+<<<<<<< HEAD
         {/* 카테고리 버튼 */}
         <CategoryButtons
             selectedCategory={selectedCategory}
@@ -23,7 +41,110 @@ const MapPage = () => {
         />
         </div>
     );
+=======
+  // 검색 버튼/엔터 시 동작 (컨트롤드 입력이라 별도 로직 없어도 됨)
+  const handleSearch = () => {
+    // 필요 시 서버 검색 호출 등으로 교체 가능
+    console.log("검색어:", search);
+  };
+
+  // 지도/목록에 표시할 필터링된 글
+  const filteredPosts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return posts.filter((p) => {
+      const byCategory = selectedCategory ? p.category === selectedCategory : true;
+      const byQuery = q
+        ? [p.title, p.content, p.address]
+            .filter(Boolean)
+            .some((f) => String(f).toLowerCase().includes(q))
+        : true;
+      return byCategory && byQuery;
+    });
+  }, [posts, selectedCategory, search]);
+
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100vh" }}>
+      {/* 지도 */}
+      <KakaoMap posts={filteredPosts} onMarkerClick={setSelectedPost} />
+
+      {/* 검색창 */}
+      <div
+        style={{
+          position: "absolute",
+          top: "10px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "95%",
+          zIndex: 10,
+        }}
+      >
+        <SearchBar value={search} onChange={setSearch} onSearch={handleSearch} />
+      </div>
+
+      {/* 카테고리 버튼 */}
+      <CategoryButtons selectedCategory={selectedCategory} onClick={handleCategoryClick} />
+
+      {/* 마커 클릭 시 하단 카드 띄우기 */}
+      {selectedPost && (
+        <BottomCard>
+          <div className="meta">
+            <strong>{selectedPost.category}</strong>
+            <span>{new Date(selectedPost.created_at).toLocaleDateString()}</span>
+          </div>
+          <div className="meta2">
+            <div className="title">"{selectedPost.title}"</div>
+            <button onClick={() => navigate(`/detail/${selectedPost.id}`)}>전체 글 보기</button>
+          </div>
+        </BottomCard>
+      )}
+    </div>
+  );
+>>>>>>> upstream/main
 };
 
-
 export default MapPage;
+
+/* ---------- styled ---------- */
+const BottomCard = styled.div`
+  position: absolute;
+  bottom: 150px; /* 하단 탭바 위로 띄움 */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  padding: 14px;
+  z-index: 20;
+
+  .meta {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+
+  .meta2 {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .title {
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 4px;
+  }
+
+  button {
+    background: #63b38f;
+    border: none;
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+`;
