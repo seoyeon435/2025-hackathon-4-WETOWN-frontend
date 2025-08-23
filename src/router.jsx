@@ -1,5 +1,6 @@
-// router.jsx
 import { createBrowserRouter } from 'react-router-dom';
+// import App from './App';
+
 
 import HomePage from "./pages/Home/HomePage";    
 import SurveyPage from "./pages/Home/SurveyPage";
@@ -13,7 +14,6 @@ import AdminPost from "./pages/Write/AdminPost";
 import RootLayout from './layouts/RootLayout';
 import NewsDetailPage from "./pages/News/NewsDetailPage";
 import DetailPage from "./pages/DetailPage/DetailPage";
-
 
 
 const router = createBrowserRouter([
