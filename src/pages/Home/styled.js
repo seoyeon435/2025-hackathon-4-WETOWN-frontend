@@ -27,7 +27,7 @@ export const HomeWrap = styled.main`
   max-width: 430px;
   margin: 0 auto;
   background: ${colors.bg};
-  padding: 6px 16px;
+  padding: 0 16px;
   box-sizing: border-box;
   min-height: 100dvh;
 
