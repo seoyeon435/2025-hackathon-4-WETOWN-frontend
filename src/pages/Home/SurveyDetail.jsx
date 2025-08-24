@@ -1,4 +1,3 @@
-// src/pages/Home/SurveyDetail.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -163,7 +162,7 @@ export default function SurveyDetail() {
   const [choice, setChoice] = useState(null); // 'good' | 'bad'
   const [reason, setReason] = useState("");
 
-  // 🔸 세션에 저장된 값으로 초기화(있으면 그대로 사용)
+  // 세션에 저장된 값으로 초기화(있으면 그대로 사용)
   const [results, setResults] = useState(() => loadSaved(id) || null);
   const [detail, setDetail] = useState(null);
 
@@ -188,7 +187,7 @@ export default function SurveyDetail() {
         if (!alive) return;
         setDetail(d);
 
-        // ✅ 항상 결과 선조회해서 state 시드 채우기 (세션값이 없을 때만 갱신)
+        // 항상 결과 선조회해서 state 시드 채우기 (세션값이 없을 때만 갱신)
         const r = await fetchResultsOnce(id);
         if (!alive) return;
 
