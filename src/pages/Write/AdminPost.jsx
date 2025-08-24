@@ -24,14 +24,33 @@ import {
   BottomSpacer,
 } from "./admin.styled";
 
-const API_BASE = import.meta.env.VITE_BASE_URL;
-import { createSurvey } from "../../apis/surveys";
+const API_BASE = (import.meta.env.VITE_BASE_URL || "").replace(/\/+$/, "");
 
-/**
- * 인증 API (예시)
- * GET  `${API_BASE}/admin/orgs/verify?code=${code}`  -> { valid: boolean, orgName?: string }
- * POST `${API_BASE}/admin/posts/`                    -> { orgCode, title, content, startAt, endAt }
- */
+/** POST /surveys/verify-code  (슬래시 없음, 바디 { code }) */
+async function verifyCode(apiBase, rawCode) {
+  const code = String(rawCode ?? "").trim();
+  if (!code) return { ok: false, name: "" };
+
+  try {
+    const { data } = await axios.post(`${apiBase}/surveys/verify-code`, { code });
+    const ok =
+      (typeof data?.valid === "boolean" ? data.valid : undefined) ??
+      (typeof data?.is_valid === "boolean" ? data.is_valid : undefined) ??
+      (typeof data?.ok === "boolean" ? data.ok : undefined) ??
+      false;
+
+    const name =
+      data?.name ??
+      data?.orgName ??
+      data?.org_name ??
+      data?.org?.name ??
+      "";
+
+    return { ok: Boolean(ok), name };
+  } catch (e) {
+    return { ok: false, name: "" };
+  }
+}
 
 export default function AdminPost() {
   const navigate = useNavigate();
@@ -47,10 +66,8 @@ export default function AdminPost() {
   const startRef = useRef(null);
   const endRef = useRef(null);
 
-  const isCodeFormatOk = useMemo(
-    () => /^[A-Za-z0-9]+$/.test(orgCode || ""),
-    [orgCode]
-  );
+  // 영문/숫자만 허용 (20041023 OK)
+  const isCodeFormatOk = useMemo(() => /^[A-Za-z0-9]+$/.test(orgCode || ""), [orgCode]);
 
   // 인증코드 자동 검증 (debounce)
   useEffect(() => {
@@ -64,27 +81,23 @@ export default function AdminPost() {
       setOrgName("");
       return;
     }
+
     setVerifyState("checking");
     const t = setTimeout(async () => {
-      try {
-        const { data } = await axios.get(`${API_BASE}/admin/orgs/verify`, {
-          params: { code: orgCode },
-        });
-        if (data?.valid) {
-          setVerifyState("ok");
-          setOrgName(data?.orgName ?? "");
-        } else {
-          setVerifyState("fail");
-          setOrgName("");
-        }
-      } catch {
+      const { ok, name } = await verifyCode(API_BASE, orgCode);
+      if (ok) {
+        setVerifyState("ok");
+        setOrgName(name || ""); // 예: 장충동 주민센터
+      } else {
         setVerifyState("fail");
         setOrgName("");
       }
     }, 450);
+
     return () => clearTimeout(t);
   }, [orgCode, isCodeFormatOk]);
 
+  // 제출 가능
   const canSubmit =
     verifyState === "ok" &&
     title.trim().length > 0 &&
@@ -92,33 +105,33 @@ export default function AdminPost() {
     startAt &&
     endAt;
 
+  // datetime-local → "YYYY-MM-DDTHH:mm:ss"
+  const toIsoSeconds = (v) => (v && v.length === 16 ? `${v}:00` : v || "");
+
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!canSubmit) return;
-    // datetime-local → 백엔드가 요구하는 형태로 맞춤
-  // 일반적으로 ISO 문자열("2025-08-23T11:30:00")로 충분. 타임존 처리 필요시 Z/offset 추가.
-  const payload = {
-    title,
-    content,
-    start_at: startAt.length === 16 ? `${startAt}:00` : startAt,
-    end_at: endAt.length === 16 ? `${endAt}:00` : endAt,
-    ...(orgCode ? { org_code: orgCode } : {}),
-  };
+
+    // DRF 스펙에 맞게 보냄
+    const payload = {
+      code: orgCode,
+      title,
+      description: content,
+      start_at: toIsoSeconds(startAt),
+      end_at: toIsoSeconds(endAt),
+    };
+
     try {
-      await axios.post(`${API_BASE}/admin/posts`, {
-        orgCode,
-        title,
-        content,
-        startAt,
-        endAt,
-      });
+      await axios.post(`${API_BASE}/surveys/`, payload);
       alert("등록되었습니다.");
+      // 초기화
       setTitle("");
       setContent("");
       setStartAt("");
       setEndAt("");
+      // navigate(-1); // 필요 시 이동
     } catch (err) {
-      console.error(err);
+      console.error("설문 생성 실패:", err?.response?.data || err);
       alert("등록에 실패했습니다. 다시 시도해주세요.");
     }
   };
@@ -150,7 +163,7 @@ export default function AdminPost() {
             type="text"
             value={orgCode}
             onChange={(e) => setOrgCode(e.target.value.trim())}
-            placeholder="기관의 인증코드를 입력해주세요."
+            placeholder="기관의 인증코드를 입력해주세요. (예: 20041023)"
             maxLength={24}
             autoComplete="off"
           />

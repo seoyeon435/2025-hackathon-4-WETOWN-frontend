@@ -16,8 +16,9 @@ import { FiArrowRight, FiCamera, FiChevronLeft } from "react-icons/fi";
 import reportDone from "../../components/assets/reportDone.svg";
 
 // 훅
-import useKakaoAddressPicker from "../../hooks/Map/useKakaoAddressPicker"
-
+import useKakaoAddressPicker from "../../hooks/Map/useKakaoAddressPicker";
+// API 인스턴스
+import instance from "../../apis/instance";
 
 const CATEGORIES = ["불편/민원", "동네 바람", "정보 공유", "자유 의견"];
 const AREAS = ["장충동", "명동", "광희동", "약수동", "을지로동", "필동", "회현동", "청구동", "신당동", "황학동"];
@@ -28,17 +29,14 @@ const WritePage = () => {
   // step: select -> compose -> done
   const [step, setStep] = useState("select");
 
-
   // 기본 선택 해제 (빈 값으로 시작)
   const [cat, setCat] = useState("");
   const [area, setArea] = useState("");
   const [addr, setAddr] = useState("");
 
-
   // 지도 좌표(초기: 서울 시청 인근)
   const [mapLat, setMapLat] = useState(37.5665);
   const [mapLng, setMapLng] = useState(126.9780);
-
 
   // step2
   const [author, setAuthor] = useState("");
@@ -47,13 +45,17 @@ const WritePage = () => {
   const [images, setImages] = useState([]); // File[]
   const fileRef = useRef(null);
 
-
-
-  // 등록 완료 후 미리보기로 넘길 데이터 저장
-
+  // 등록 완료 후 응답으로 받은 포스트
   const [createdPost, setCreatedPost] = useState(null);
 
+  const [submitting, setSubmitting] = useState(false);
+  const [activeTagIdx, setActiveTagIdx] = useState(null); // 추천태그 UI 토글
+
+  // Step1 진행 가능 여부
   const canNext = !!cat && !!area;
+
+  // Step2 등록 가능 여부(필수값 3개)
+  const canSubmit = Boolean(author.trim() && title.trim() && body.trim());
 
   const aiChips = useMemo(() => {
     if (!cat) return [];
@@ -61,7 +63,6 @@ const WritePage = () => {
       ? ["# 가로등이 너무 어두워요", "# 가로등", "# 여기 가로등 꺼졌어요", "# 놀이터가어둡"]
       : ["# 불편 신고", "# 제설 요청", "# 위험 지역"];
   }, [cat]);
-
 
   // 주소 검색 + 지도/핀 훅 (select 단계에서만 활성화)
   const {
@@ -108,7 +109,6 @@ const WritePage = () => {
     ev.target.value = "";
   };
 
-
   const onRemoveImage = (idx) => setImages((prev) => prev.filter((_, i) => i !== idx));
 
   const goNext = () => {
@@ -116,28 +116,40 @@ const WritePage = () => {
     setStep("compose");
   };
 
-  const onSubmit = (e) => {
+  // 등록 (백엔드 연동)
+  const onSubmit = async (e) => {
     e.preventDefault();
+    if (submitting || !canSubmit) return; // 가드
 
-    // TODO: API 전송 위치
-    const id = Date.now().toString(); // 데모용 ID
-    const imgUrls = images.map((f) => URL.createObjectURL(f));
+    setSubmitting(true);
+    try {
+      const form = new FormData();
+      form.append("title", title);
+      form.append("content", body);
+      form.append("writer", author);
+      form.append("category", cat);
+      form.append("area", area);
+      if (addr) form.append("address", addr);
+      form.append("latitude", String(mapLat));
+      form.append("longitude", String(mapLng));
+      // 단일 이미지(백 규약이 여러 장이면 images[]로 반복 append)
+      if (images[0]) form.append("image", images[0]);
 
-    setCreatedPost({
-      id,
-      category: cat,
-      area,
-      addr,
-      author,
-      title,
-      body,
-      images: imgUrls,
-      createdAt: new Date().toISOString(),
-      lat: mapLat,
-      lng: mapLng,
-    });
+      const res = await instance.post("/posts/", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-    setStep("done");
+      // 응답 그대로 저장(최소한 id 포함)
+      const newPost = res?.data;
+      if (!newPost?.id) throw new Error("생성된 게시글 ID가 응답에 없습니다.");
+      setCreatedPost(newPost);
+      setStep("done");
+    } catch (err) {
+      console.error("게시글 등록 실패:", err);
+      // 필요하면 서버 에러를 폼 아래 텍스트로 매핑 가능
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // ===== STEP 3: 등록 완료 =====
@@ -154,10 +166,10 @@ const WritePage = () => {
             당신의 한 마디가 우리 동네를 움직입니다.
           </DoneText>
 
-          {/* 작성된 글 보기 */}
+          {/* 작성된 글 보기 → DetailPage로 이동 */}
           <ViewPostBtn
             type="button"
-            onClick={() => navigate("/post/preview", { state: { post: createdPost } })}
+            onClick={() => navigate(`/detail/${createdPost.id}`)}
             disabled={!createdPost}
           >
             작성된 글 보기
@@ -172,7 +184,6 @@ const WritePage = () => {
     return (
       <Wrap as="form" onSubmit={onSubmit}>
         <Section>
-
           {/* 작성 화면 상단 뒤로가기 (1단계로 복귀) */}
           <TopInline>
             <BackBtn type="button" aria-label="뒤로가기" onClick={() => setStep("select")}>
@@ -182,14 +193,20 @@ const WritePage = () => {
 
           <Field>
             <label>작성자</label>
-
-            <Input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="이름 / 별명 입력" />
-
+            <Input
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+              placeholder="이름 / 별명 입력"
+            />
           </Field>
 
           <Field>
             <label>제목</label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목을 입력해주세요." />
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="제목을 입력해주세요."
+            />
           </Field>
 
           <Field>
@@ -239,7 +256,16 @@ const WritePage = () => {
               <SuggestTitle>AI 추천 태그</SuggestTitle>
               <SuggestChips>
                 {aiChips.map((t, idx) => (
-                  <SuggestChip key={idx} onClick={() => setTitle((v) => v || t.replace(/^#\s*/, ""))}>
+                  <SuggestChip
+                    key={idx}
+                    type="button"                  // submit 방지
+                    $active={activeTagIdx === idx} // 색상 토글
+                    onClick={() => {
+                      setActiveTagIdx((prev) => (prev === idx ? null : idx)); // 다시 누르면 해제
+                      // 제목이 비어있을 때만 한 번 채워줌(옵션)
+                      setTitle((v) => v || t.replace(/^#\s*/, ""));
+                    }}
+                  >
                     {t}
                   </SuggestChip>
                 ))}
@@ -247,7 +273,19 @@ const WritePage = () => {
             </>
           )}
 
-          <RegisterBtn type="submit">등록</RegisterBtn>
+          <RegisterBtn
+            type="submit"
+            disabled={!canSubmit || submitting}
+            $fabLikeDisabled
+            title={
+              !canSubmit
+                ? "작성자/제목/내용을 모두 입력하면 등록할 수 있어요"
+                : (submitting ? "등록 중…" : "등록")
+            }
+            aria-disabled={!canSubmit || submitting}
+          >
+            {submitting ? "등록 중…" : "등록"}
+          </RegisterBtn>
         </Section>
       </Wrap>
     );
@@ -260,7 +298,11 @@ const WritePage = () => {
         <LabelRow>어떤 종류의 글인가요 ?</LabelRow>
         <ChipGroup>
           {CATEGORIES.map((c) => (
-            <Chip key={c} $active={cat === c} onClick={() => setCat(c)}>
+            <Chip
+              key={c}
+              $active={cat === c}
+              onClick={() => setCat(prev => (prev === c ? "" : c))} // 다시 누르면 해제
+            >
               {c}
             </Chip>
           ))}
@@ -269,7 +311,11 @@ const WritePage = () => {
         <LabelRow style={{ marginTop: 22 }}>어디서 발생한 민원인가요 ?</LabelRow>
         <ChipGroup>
           {AREAS.map((a) => (
-            <Chip key={a} $active={area === a} onClick={() => setArea(a)}>
+            <Chip
+              key={a}
+              $active={area === a}
+              onClick={() => setArea(prev => (prev === a ? "" : a))} // 다시 누르면 해제
+            >
               {a}
             </Chip>
           ))}
