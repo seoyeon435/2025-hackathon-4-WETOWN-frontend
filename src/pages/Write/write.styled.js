@@ -65,9 +65,9 @@ export const AddressInput = styled.input`
 
 export const MapBox = styled.div`
   position: relative;
-  height: 180px;
+  height: 250px;
   border: 1px solid ${LINE};
-  border-radius: 8px;
+  border-radius: 10px;
   background: #cfcfcf;
   overflow: hidden;
 
