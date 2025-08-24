@@ -39,7 +39,7 @@ const Btn = styled.button`
   padding: 10px 16px;
   border: none;
   border-radius: 20px;
-  background: #00B890;
+  background: #4a6cf7;
   color: #fff;
   cursor: pointer;
 `;
