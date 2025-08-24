@@ -20,9 +20,26 @@ import {
 
 const API_BASE = (import.meta.env.VITE_BASE_URL || "").replace(/\/+$/, "");
 
-/* =========================
-   결과 응답 파싱: normalize
-   ========================= */
+/* ---------- 세션 스토리지 helpers ---------- */
+const keyOf = (id) => `survey:results:${id}`;
+const loadSaved = (id) => {
+  try {
+    const raw = sessionStorage.getItem(keyOf(id));
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (Number.isFinite(obj?.yes) && Number.isFinite(obj?.no)) return obj;
+  } catch {}
+  return null;
+};
+const saveResults = (id, res) => {
+  try {
+    if (res && Number.isFinite(res.yes) && Number.isFinite(res.no)) {
+      sessionStorage.setItem(keyOf(id), JSON.stringify({ yes: res.yes, no: res.no }));
+    }
+  } catch {}
+};
+
+/* ---------- 결과 파싱 ---------- */
 function normalizeResults(raw) {
   if (!raw) return { yes: 0, no: 0 };
 
@@ -34,7 +51,6 @@ function normalizeResults(raw) {
   const lowerObj = (obj) =>
     Object.fromEntries(Object.entries(obj).map(([k, v]) => [String(k).toLowerCase(), v]));
 
-  // 객체형
   if (typeof raw === "object" && !Array.isArray(raw)) {
     const obj = lowerObj(raw);
     const inner =
@@ -42,7 +58,6 @@ function normalizeResults(raw) {
       (obj.results && lowerObj(obj.results)) ||
       obj;
 
-    // 가능한 키들을 폭넓게 매핑
     const yes =
       toNum(inner.yes) ??
       toNum(inner.yes_count) ??
@@ -51,8 +66,7 @@ function normalizeResults(raw) {
       toNum(inner.satisfied) ??
       toNum(inner.satisfied_count) ??
       toNum(inner.good) ??
-      toNum(inner.true) ??
-      0;
+      toNum(inner.true) ?? 0;
 
     const no =
       toNum(inner.no) ??
@@ -62,10 +76,8 @@ function normalizeResults(raw) {
       toNum(inner.unsatisfied) ??
       toNum(inner.unsatisfied_count) ??
       toNum(inner.bad) ??
-      toNum(inner.false) ??
-      0;
+      toNum(inner.false) ?? 0;
 
-    // 비율만 주는 경우
     const yRatio =
       toNum(inner.yes_ratio) ??
       toNum(inner.agree_ratio) ??
@@ -79,22 +91,19 @@ function normalizeResults(raw) {
     if (Number.isFinite(yRatio) || Number.isFinite(nRatio)) {
       const y = Math.max(0, Math.min(1, yRatio ?? 1 - (nRatio ?? 0)));
       const n = 1 - y;
-      // 비율만 있으면 퍼센트 정수로 반환
       return { yes: Math.round(y * 100), no: Math.round(n * 100), isRatioOnly: true };
     }
   }
 
-  // 배열형
   if (Array.isArray(raw)) {
     let yes = 0, no = 0;
     for (const it of raw) {
       const item = typeof it === "object" ? it : {};
       const key = (item.key ?? item.name ?? item.option ?? item.label ?? "")
-        .toString()
-        .toLowerCase();
+        .toString().toLowerCase();
       const cnt = toNum(item.count ?? item.value ?? item.total ?? item.cnt ?? 0) ?? 0;
-      if (["yes", "agree", "satisfied", "good", "y", "true", "찬성"].includes(key)) yes += cnt;
-      else if (["no", "disagree", "unsatisfied", "bad", "n", "false", "반대"].includes(key)) no += cnt;
+      if (["yes","agree","satisfied","good","y","true","찬성"].includes(key)) yes += cnt;
+      else if (["no","disagree","unsatisfied","bad","n","false","반대"].includes(key)) no += cnt;
     }
     return { yes, no };
   }
@@ -102,24 +111,20 @@ function normalizeResults(raw) {
   return { yes: 0, no: 0 };
 }
 
-/* =========================
-   투표 전송: 다양한 스키마 대응
-   ========================= */
+/* ---------- POST / vote ---------- */
 async function tryPostVote(id, choice, reason) {
   const endpoints = [
     `${API_BASE}/surveys/${id}/vote/`,
     `${API_BASE}/surveys/${id}/vote`,
   ];
-
-  const bool = choice === "good"; // good → 찬성/만족
+  const yes = choice === "good";
   const bodies = [
-    { choice: bool ? "yes" : "no", reason },
-    { vote: bool ? "agree" : "disagree", reason },
-    { is_agree: bool, reason },
-    { satisfied: bool, reason },
-    { value: bool ? 1 : 0, reason },
+    { choice: yes ? "yes" : "no", reason },
+    { vote: yes ? "agree" : "disagree", reason },
+    { is_agree: yes, reason },
+    { satisfied: yes, reason },
+    { value: yes ? 1 : 0, reason },
   ];
-
   for (const url of endpoints) {
     for (const body of bodies) {
       try {
@@ -128,17 +133,13 @@ async function tryPostVote(id, choice, reason) {
           withCredentials: true,
         });
         if (res.status >= 200 && res.status < 300) return { ok: true };
-      } catch (e) {
-        // console.warn("[vote fail]", url, body, e?.response?.status, e?.response?.data);
-      }
+      } catch {}
     }
   }
   return { ok: false };
 }
 
-/* =========================
-   결과 조회 (슬래시 유/무 시도)
-   ========================= */
+/* ---------- GET / results ---------- */
 async function fetchResultsOnce(id) {
   const urls = [
     `${API_BASE}/surveys/${id}/results/`,
@@ -148,9 +149,7 @@ async function fetchResultsOnce(id) {
     try {
       const { data } = await axios.get(u, { withCredentials: true });
       return normalizeResults(data);
-    } catch (e) {
-      // console.warn("[results fail]", u, e?.response?.status, e?.response?.data);
-    }
+    } catch {}
   }
   return null;
 }
@@ -160,18 +159,17 @@ export default function SurveyDetail() {
   const { id } = useParams();
   const location = useLocation();
 
-  // step: 'choose' | 'reason' | 'done' | 'result'
   const [step, setStep] = useState(location.state?.mode === "result" ? "result" : "choose");
   const [choice, setChoice] = useState(null); // 'good' | 'bad'
   const [reason, setReason] = useState("");
 
+  // 🔸 세션에 저장된 값으로 초기화(있으면 그대로 사용)
+  const [results, setResults] = useState(() => loadSaved(id) || null);
   const [detail, setDetail] = useState(null);
-  const [results, setResults] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
 
-  // 상세 불러오기 (+ 결과 선조회: result 모드로 들어온 경우)
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -179,42 +177,59 @@ export default function SurveyDetail() {
         setLoading(true);
         setErr(null);
 
-        const detailUrls = [
-          `${API_BASE}/surveys/${id}/`,
-          `${API_BASE}/surveys/${id}`,
-        ];
+        // 상세
+        const detailUrls = [`${API_BASE}/surveys/${id}/`, `${API_BASE}/surveys/${id}`];
         let d = null;
         for (const u of detailUrls) {
-          try {
-            const res = await axios.get(u, { withCredentials: true });
-            d = res.data; break;
-          } catch (_) {}
+          try { const res = await axios.get(u, { withCredentials: true }); d = res.data; break; }
+          catch {}
         }
         if (!d) throw new Error("detail fail");
         if (!alive) return;
         setDetail(d);
 
-        if (location.state?.mode === "result") {
-          const r = await fetchResultsOnce(id);
-          if (alive) setResults(r ?? { yes: 0, no: 0 });
+        // ✅ 항상 결과 선조회해서 state 시드 채우기 (세션값이 없을 때만 갱신)
+        const r = await fetchResultsOnce(id);
+        if (!alive) return;
+
+        if (r && !r.isRatioOnly && (r.yes + r.no) >= 0) {
+          // 서버가 정수 카운트 주면 세션/상태 업데이트
+          setResults((prev) => {
+            const next = prev ?? r; // 기존 세션이 있으면 유지
+            saveResults(id, next);
+            return next;
+          });
+        } else if (results == null) {
+          // 서버 값이 없고 세션도 없으면 0,0으로 시드
+          setResults({ yes: 0, no: 0 });
+          saveResults(id, { yes: 0, no: 0 });
         }
-      } catch (e) {
+
+        // 결과 모드면 한 번 더 최신화
+        if (location.state?.mode === "result") {
+          const latest = await fetchResultsOnce(id);
+          if (alive && latest && !latest.isRatioOnly && (latest.yes + latest.no) > 0) {
+            setResults(latest);
+            saveResults(id, latest);
+          }
+        }
+      } catch {
         if (alive) setErr("설문 상세를 불러오지 못했습니다.");
       } finally {
         if (alive) setLoading(false);
       }
     })();
     return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, location.state?.mode]);
 
   const handleBack = () => {
     if (step === "reason") { setStep("choose"); return; }
     navigate(-1);
   };
-
   const pick = (w) => { setChoice(w); setStep("reason"); };
 
-  // 투표 전송 + 결과로 이동 (낙관적 업데이트 포함)
+  /* ---------- 핵심: 낙관적 누적 + 세션 보존 ---------- */
   const onSend = async () => {
     const ok = await tryPostVote(id, choice, reason?.trim() || undefined);
     if (!ok) {
@@ -222,53 +237,35 @@ export default function SurveyDetail() {
       return;
     }
 
-    // 서버 결과 재조회
+    // 서버 결과 재조회 (지연될 수 있음)
     const fresh = await fetchResultsOnce(id);
 
-    if (fresh && !fresh.isRatioOnly) {
+    if (fresh && !fresh.isRatioOnly && (fresh.yes + fresh.no) > 0) {
+      // 서버가 실제 카운트를 주면 그것으로 동기화
       setResults(fresh);
+      saveResults(id, fresh);
     } else {
-      // 서버가 바로 집계 안 주거나 비율만 주는 경우 낙관적 보정
-      setResults((prev) => ({
-        yes: (prev?.yes ?? 0) + (choice === "good" ? 1 : 0),
-        no: (prev?.no ?? 0) + (choice === "bad" ? 1 : 0),
-      }));
+      // 서버가 0,0 / null / 비율만 준 경우: 세션값 기준으로 낙관적 +1
+      const base = loadSaved(id) ?? results ?? { yes: 0, no: 0 };
+      const optimistic = {
+        yes: base.yes + (choice === "good" ? 1 : 0),
+        no:  base.no  + (choice === "bad"  ? 1 : 0),
+      };
+      setResults(optimistic);
+      saveResults(id, optimistic);
     }
 
     setStep("result");
   };
 
-  // 완료 화면(현재는 바로 결과로 보내지만 남겨둠)
-  if (step === "done") {
-    return (
-      <Wrap>
-        <DoneWrap>
-          <DoneIcon><img src={surveyDone} alt="투표 아이콘" /></DoneIcon>
-          <DoneText>
-            설문 참여가 완료되었습니다. <br />
-            오늘의 참여가 내일의 더 나은 동네를 만듭니다.
-          </DoneText>
-          <PrevBtn
-            onClick={async () => {
-              const r = await fetchResultsOnce(id);
-              setResults(r ?? { yes: 0, no: 0 });
-              setStep("result");
-            }}
-          >
-            결과 보기
-          </PrevBtn>
-        </DoneWrap>
-      </Wrap>
-    );
-  }
+  /* ---------- 화면들 ---------- */
 
-  // 결과 화면
   if (step === "result") {
     const yes = results?.yes ?? 0;
-    const no = results?.no ?? 0;
+    const no  = results?.no  ?? 0;
     const total = yes + no;
     const yesPct = total > 0 ? Math.round((yes / total) * 100) : 0;
-    const noPct = total > 0 ? 100 - yesPct : 0;
+    const noPct  = total > 0 ? 100 - yesPct : 0;
 
     return (
       <Wrap>
@@ -283,7 +280,6 @@ export default function SurveyDetail() {
         <MetaRow>
           <MetaAvatar />
           <MetaInfo>
-            {/* ✅ 담당부서 → agency_name */}
             <MetaName>{detail?.agency_name || "기관"}</MetaName>
           </MetaInfo>
         </MetaRow>
@@ -298,15 +294,10 @@ export default function SurveyDetail() {
         <ResultCard>
           <ResultHeader>투표현황</ResultHeader>
 
-          {/* ✅ total이 0이면 퍼센트 막대를 그리지 않음 */}
           {total > 0 ? (
             <ResultBar aria-label={`찬성 ${yesPct}%, 반대 ${noPct}%`} style={{ minWidth: 0 }}>
-              {yesPct > 0 && (
-                <YesSeg style={{ flexBasis: `${yesPct}%` }}>찬성({yesPct}%)</YesSeg>
-              )}
-              {noPct > 0 && (
-                <NoSeg style={{ flexBasis: `${noPct}%` }}>반대({noPct}%)</NoSeg>
-              )}
+              {yesPct > 0 && <YesSeg style={{ flexBasis: `${yesPct}%` }}>찬성({yesPct}%)</YesSeg>}
+              {noPct  > 0 && <NoSeg  style={{ flexBasis: `${noPct }%` }}>반대({noPct }%)</NoSeg>}
             </ResultBar>
           ) : (
             <ResultBar style={{ minWidth: 0 }} aria-label="집계 없음" />
@@ -341,7 +332,6 @@ export default function SurveyDetail() {
           <MetaRow>
             <MetaAvatar />
             <MetaInfo>
-              {/* ✅ 담당부서 대신 agency_name 표시 */}
               <MetaName>{detail?.agency_name || "기관"}</MetaName>
             </MetaInfo>
           </MetaRow>
@@ -359,7 +349,7 @@ export default function SurveyDetail() {
               <VoteBtn
                 $active={choice === "good"}
                 $kind="good"
-                onClick={() => pick("good")}
+                onClick={() => setStep("reason") || setChoice("good")}
               >
                 <AiOutlineLike />
                 <span>만족</span>
@@ -367,7 +357,7 @@ export default function SurveyDetail() {
               <VoteBtn
                 $active={choice === "bad"}
                 $kind="bad"
-                onClick={() => pick("bad")}
+                onClick={() => setStep("reason") || setChoice("bad")}
               >
                 <AiOutlineDislike />
                 <span>불만족</span>
