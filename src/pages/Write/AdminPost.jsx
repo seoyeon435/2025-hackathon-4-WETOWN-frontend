@@ -24,30 +24,28 @@ import {
   BottomSpacer,
 } from "./admin.styled";
 
-const API_BASE = import.meta.env.VITE_BASE_URL;
+const API_BASE = (import.meta.env.VITE_BASE_URL || "").replace(/\/+$/, "");
 
 /* ---------------- axios 공통 설정 ---------------- */
 const getCookie = (name) => {
   if (typeof document === "undefined") return "";
-  const match = document.cookie.match(new RegExp("(^|; )" + name + "=([^;]*)"));
-  return match ? decodeURIComponent(match[2]) : "";
+  const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return m ? decodeURIComponent(m[1]) : "";
 };
 
 const api = axios.create({
-  baseURL: API_BASE?.replace(/\/+$/, "") || "",
-  withCredentials: true, // 쿠키 기반 인증일 때 필수
+  baseURL: API_BASE,
+  withCredentials: true, // 쿠키(세션/CSRFTOKEN) 전송
   headers: { "Content-Type": "application/json" },
 });
 
-// 요청마다 CSRF/토큰 붙이기
+// CSRF/JWT 자동 첨부
 api.interceptors.request.use((cfg) => {
-  // CSRF (Django/DRF 등)
   const csrf = getCookie("csrftoken") || getCookie("CSRF-TOKEN") || getCookie("XSRF-TOKEN");
-  if (csrf && !cfg.headers["X-CSRFToken"] && !cfg.headers["X-CSRF-Token"]) {
+  if (csrf) {
     cfg.headers["X-CSRFToken"] = csrf;
     cfg.headers["X-CSRF-Token"] = csrf;
   }
-  // JWT/기타 토큰 (있을 때만)
   const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
   if (token && !cfg.headers.Authorization) {
     cfg.headers.Authorization = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
@@ -55,8 +53,8 @@ api.interceptors.request.use((cfg) => {
   return cfg;
 });
 
-// / 와 /없음 둘 다 시도
-const postWithSlashFallback = async (path, body) => {
+// / 와 /없음 모두 시도
+const postFallback = async (path, body) => {
   const p = path.startsWith("/") ? path : `/${path}`;
   try {
     return await api.post(p, body);
@@ -90,13 +88,13 @@ export default function AdminPost() {
     [orgCode]
   );
 
-  // iOS 사파리 대응: showPicker 미지원/제한 시 포커스/클릭 폴백
+  // iOS: showPicker 미지원시 포커스/클릭
   const openNativePicker = (ref) => {
-    const el = ref.current;
+    const el = ref.current || document.getElementById(ref);
     if (!el) return;
     try {
-      if (typeof el.showPicker === "function") el.showPicker(); // 크롬/안드로이드
-      else { el.focus(); el.click(); }                          // iOS 사파리 폴백
+      if (typeof el.showPicker === "function") el.showPicker();
+      else { el.focus(); el.click(); }
     } catch {
       el.focus(); el.click();
     }
@@ -118,7 +116,8 @@ export default function AdminPost() {
 
     const t = setTimeout(async () => {
       try {
-        const { data } = await api.post("/surveys/verify-code", { code: orgCode });
+        // 백엔드가 / 또는 /없음 한쪽만 받을 수 있으니 폴백 사용
+        const { data } = await postFallback("/surveys/verify-code", { code: orgCode });
         if (data?.valid) {
           setVerifyState("ok");
           setOrgName(data?.agency_name ?? "");
@@ -127,7 +126,6 @@ export default function AdminPost() {
           setOrgName("");
         }
       } catch (err) {
-        // 4xx면 메시지 보여주기(디버깅 도움)
         console.warn("verify-code failed", err?.response?.status, err?.response?.data);
         setVerifyState("fail");
         setOrgName("");
@@ -157,7 +155,7 @@ export default function AdminPost() {
     };
 
     try {
-      await postWithSlashFallback("/admin/posts", payload);
+      await postFallback("/admin/posts", payload);
       alert("등록되었습니다.");
       setTitle("");
       setContent("");
@@ -169,21 +167,20 @@ export default function AdminPost() {
         err?.response?.data?.detail ||
         err?.response?.data?.message ||
         JSON.stringify(err?.response?.data || {});
-      console.error("Create failed:", status, detail, err);
+      console.error("Create failed:", status, detail);
 
       if (status === 403) {
         alert(
-          "등록이 차단되었어요(403).\n" +
-          "- 로그인/권한/CSRF 문제가 있을 수 있어요.\n" +
-          "- 프런트와 API가 다른 도메인이면 서버 CORS에서 credentials 허용과 Origin 화이트리스트 설정이 필요해요.\n" +
-          "- 쿠키 기반이면 CSRF 토큰 설정을 확인해주세요."
+          "등록이 거절되었습니다(403).\n" +
+          "- 로그인/권한/CSRF/CORS 이슈일 수 있어요.\n" +
+          "- 같은 도메인에서 호출하거나, 서버에서 CORS(Origin, Credentials)와 쿠키 SameSite=None; Secure 설정을 확인해주세요."
         );
       } else if (status === 400) {
         alert(`요청 형식 오류(400): ${detail}`);
       } else if (status === 401) {
         alert("인증 필요(401): 로그인 토큰이 없거나 만료되었습니다.");
       } else {
-        alert(`등록에 실패했습니다. [${status ?? "네트워크"}] ${detail}`);
+        alert(`등록 실패 [${status ?? "네트워크"}]: ${detail}`);
       }
     }
   };
@@ -200,7 +197,8 @@ export default function AdminPost() {
     <Wrap as="form" onSubmit={onSubmit}>
       {/* 상단 바 */}
       <TopBar>
-        <TopBackBtn onClick={() => navigate(-1)} aria-label="뒤로가기">
+        {/* Issues 경고 해결: 명시적 type/title/aria-label */}
+        <TopBackBtn type="button" title="뒤로가기" aria-label="뒤로가기" onClick={() => navigate(-1)}>
           <FiChevronLeft />
         </TopBackBtn>
         <TopTitle>관리자 설문 작성</TopTitle>
@@ -209,9 +207,11 @@ export default function AdminPost() {
 
       {/* 인증코드 */}
       <Field>
-        <Label>인증코드</Label>
+        <Label htmlFor="orgCode">인증코드</Label>
         <CodeBox $state={verifyState}>
           <input
+            id="orgCode"
+            name="org_code"
             type="text"
             value={orgCode}
             onChange={(e) => setOrgCode(e.target.value.trim())}
@@ -243,8 +243,10 @@ export default function AdminPost() {
 
       {/* 설문 제목 */}
       <Field>
-        <Label>설문 제목</Label>
+        <Label htmlFor="title">설문 제목</Label>
         <Input
+          id="title"
+          name="title"
           placeholder="진행하는 설문 조사의 제목을 입력해주세요."
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -254,10 +256,12 @@ export default function AdminPost() {
       {/* 본문 */}
       <Field>
         <LabelRow>
-          <Label>글을 작성해주세요.</Label>
+          <Label htmlFor="content">글을 작성해주세요.</Label>
           <WarnText>작성 이후 수정은 불가합니다.</WarnText>
         </LabelRow>
         <Textarea
+          id="content"
+          name="content"
           rows={7}
           placeholder="작성 이후 수정은 불가합니다."
           value={content}
@@ -276,46 +280,41 @@ export default function AdminPost() {
           }
         />
 
-        <BtnRow>
-          <label
-            htmlFor="startAtPicker"
-            style={{ cursor: "pointer" }}
-            onClick={() => openNativePicker({ current: document.getElementById("startAtPicker") })}
-          >
-            <GhostBlue as="span" role="button" tabIndex={0}>
+        {/* 접근성/타입 경고 해결: span 대신 명시적 버튼 + type="button" */}
+        <BtnRow style={{ gap: 10 }}>
+          <label htmlFor="startAtPicker" style={{ cursor: "pointer" }}>
+            <GhostBlue as="button" type="button" title="시작날짜 선택" onClick={() => openNativePicker("startAtPicker")}>
               <FiCalendar />
               <span>시작날짜</span>
             </GhostBlue>
           </label>
 
-          <label
-            htmlFor="endAtPicker"
-            style={{ cursor: "pointer" }}
-            onClick={() => openNativePicker({ current: document.getElementById("endAtPicker") })}
-          >
-            <GhostRed as="span" role="button" tabIndex={0}>
+          <label htmlFor="endAtPicker" style={{ cursor: "pointer" }}>
+            <GhostRed as="button" type="button" title="종료날짜 선택" onClick={() => openNativePicker("endAtPicker")}>
               <FiCalendar />
               <span>종료날짜</span>
             </GhostRed>
           </label>
         </BtnRow>
 
-        {/* 숨겨진 datetime-local 입력 (뷰포트 안에 두기) */}
+        {/* 뷰포트 안(폼 근처)에 두기: 위치/크기 최소화 + 투명 */}
         <HiddenDateTime
           id="startAtPicker"
+          name="start_at"
           ref={startRef}
           type="datetime-local"
           value={startAt}
           onChange={(e) => setStartAt(e.target.value)}
-          style={{ position:"absolute", width:1, height:1, opacity:0 }}
+          style={{ position: "absolute", width: 1, height: 1, opacity: 0 }}
         />
         <HiddenDateTime
           id="endAtPicker"
+          name="end_at"
           ref={endRef}
           type="datetime-local"
           value={endAt}
           onChange={(e) => setEndAt(e.target.value)}
-          style={{ position:"absolute", width:1, height:1, opacity:0 }}
+          style={{ position: "absolute", width: 1, height: 1, opacity: 0 }}
         />
       </Field>
 
