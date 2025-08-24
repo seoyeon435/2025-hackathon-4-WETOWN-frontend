@@ -12,7 +12,7 @@ export const Wrap = styled.main`
   max-width: 430px;
   margin: 0 auto;
   padding: 12px 16px;
-  padding-top: 70px;     /* 공통 헤더 여백 */
+  /* padding-top: 70px; */
   padding-bottom: 92px;  /* 하단 네비 여백 */
   background: #fff;
   min-height: 100dvh;
@@ -261,4 +261,9 @@ export const PrevBtn = styled.button`
   transition: transform .05s ease;
   &:active { transform: translateY(1px); }
   cursor: pointer;
+`;
+
+// 결과 스타일 (표 갯수)
+export const ResultCaption = styled.div`
+  margin-top: 8px; color:#555; font-size:13px;
 `;
