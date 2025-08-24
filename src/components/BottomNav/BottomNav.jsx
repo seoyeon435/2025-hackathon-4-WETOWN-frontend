@@ -35,12 +35,13 @@ const BottomNav = () => {
         </S.NavItem>
 
         <S.NavItem
-          $active={currentPath === "/robot"}
-          onClick={() => navigate("/robot")}
+          $active={currentPath === "/chatbot"}
+          onClick={() => navigate("/chatbot")}
         >
           <FaRobot size={20} />
           <span>챗봇</span>
         </S.NavItem>
+
       </S.NavWrapper>
 
       <FloatingMapButton />

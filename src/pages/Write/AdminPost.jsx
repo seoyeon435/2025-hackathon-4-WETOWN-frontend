@@ -24,6 +24,7 @@ import {
   BottomSpacer,
 } from "./admin.styled";
 
+
 const API_BASE = import.meta.env.VITE_BASE_URL;
 import { createSurvey } from "../../apis/surveys"; // (사용 중이 아니면 제거해도 무방)
 
@@ -47,10 +48,8 @@ export default function AdminPost() {
   const startRef = useRef(null);
   const endRef = useRef(null);
 
-  const isCodeFormatOk = useMemo(
-    () => /^[A-Za-z0-9]+$/.test(orgCode || ""),
-    [orgCode]
-  );
+  // 영문/숫자만 허용 (20041023 OK)
+  const isCodeFormatOk = useMemo(() => /^[A-Za-z0-9]+$/.test(orgCode || ""), [orgCode]);
 
   // 인증코드 자동 검증 (debounce)
   useEffect(() => {
@@ -64,6 +63,7 @@ export default function AdminPost() {
       setOrgName("");
       return;
     }
+
     setVerifyState("checking");
 
     const t = setTimeout(async () => {
@@ -90,12 +90,16 @@ export default function AdminPost() {
     return () => clearTimeout(t);
   }, [orgCode, isCodeFormatOk]);
 
+  // 제출 가능
   const canSubmit =
     verifyState === "ok" &&
     title.trim().length > 0 &&
     content.trim().length > 0 &&
     startAt &&
     endAt;
+
+  // datetime-local → "YYYY-MM-DDTHH:mm:ss"
+  const toIsoSeconds = (v) => (v && v.length === 16 ? `${v}:00` : v || "");
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -114,12 +118,14 @@ export default function AdminPost() {
       // ⚠️ 실제 생성 엔드포인트는 프로젝트 스펙에 맞게 교체
       await axios.post(`${API_BASE}/admin/posts`, payload);
       alert("등록되었습니다.");
+      // 초기화
       setTitle("");
       setContent("");
       setStartAt("");
       setEndAt("");
+      // navigate(-1); // 필요 시 이동
     } catch (err) {
-      console.error(err);
+      console.error("설문 생성 실패:", err?.response?.data || err);
       alert("등록에 실패했습니다. 다시 시도해주세요.");
     }
   };
@@ -151,7 +157,7 @@ export default function AdminPost() {
             type="text"
             value={orgCode}
             onChange={(e) => setOrgCode(e.target.value.trim())}
-            placeholder="기관의 인증코드를 입력해주세요."
+            placeholder="기관의 인증코드를 입력해주세요. (예: 20041023)"
             maxLength={24}
             autoComplete="off"
           />
@@ -166,7 +172,7 @@ export default function AdminPost() {
           </RightAddon>
         </CodeBox>
 
-        {/* ✅ 성공 문구 */}
+        {/* 성공 문구 */}
         {verifyState === "ok" && orgName && (
           <CaptionSuccess>{orgName} 인증되었습니다</CaptionSuccess>
         )}

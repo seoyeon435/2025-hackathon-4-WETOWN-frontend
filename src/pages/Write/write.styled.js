@@ -8,8 +8,8 @@ export const Wrap = styled.main`
   width: 100%;
   max-width: 430px;
   margin: 0 auto;
-  padding: 12px 16px;
-  padding-top: 70px;     /* 공통 헤더 */
+  padding: 6px 16px;
+  /* padding-top: 70px; */
   padding-bottom: 92px;  /* 하단 네비 */
   background: #fff;
   min-height: 100dvh;
@@ -208,6 +208,11 @@ export const SuggestChip = styled.button`
   border-radius: 999px; padding: 10px 14px;
   box-shadow: 0 2px 6px rgba(0,0,0,.08);
   cursor: pointer;
+  ${({ $active }) => $active && `
+  background: ${BRAND};
+  color: #fff;
+  border-color: #111;
+`}
 `;
 
 export const RegisterBtn = styled.button`
@@ -220,6 +225,13 @@ export const RegisterBtn = styled.button`
   cursor: pointer;
   transition: transform .06s ease;
   &:active{ transform: translateY(1px); }
+  &:disabled {
+    background: #e5e7eb;
+    color: #9ca3af;
+    border-color: #e5e7eb;
+    cursor: not-allowed;
+    opacity: 1; /* NextFab과 동일 */
+  }
 `;
 
 /* ---------- 완료(step3) ---------- */
