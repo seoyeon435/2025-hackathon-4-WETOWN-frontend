@@ -1,7 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom';
 // import App from './App';
-
-
 import HomePage from "./pages/Home/HomePage";    
 import SurveyPage from "./pages/Home/SurveyPage";
 import SurveyDetail from "./pages/Home/SurveyDetail";
@@ -14,6 +12,7 @@ import AdminPost from "./pages/Write/AdminPost";
 import RootLayout from './layouts/RootLayout';
 import NewsDetailPage from "./pages/News/NewsDetailPage";
 import DetailPage from "./pages/DetailPage/DetailPage";
+import ChatbotPage from "./pages/Chatbot/ChatbotPage";
 
 
 const router = createBrowserRouter([
@@ -32,6 +31,7 @@ const router = createBrowserRouter([
             { path: "/news", element: <NewsPage /> },
             { path: "/news/:id", element: <NewsDetailPage /> },
             { path: "/detail/:postId", element: <DetailPage /> },
+            { path: "/chatbot", element: <ChatbotPage /> },
         ],
         },
 ]);
