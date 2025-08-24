@@ -24,9 +24,7 @@ import {
   BottomSpacer,
 } from "./admin.styled";
 
-
 const API_BASE = import.meta.env.VITE_BASE_URL;
-import { createSurvey } from "../../apis/surveys"; // (사용 중이 아니면 제거해도 무방)
 
 /**
  * 인증 API
@@ -48,8 +46,27 @@ export default function AdminPost() {
   const startRef = useRef(null);
   const endRef = useRef(null);
 
-  // 영문/숫자만 허용 (20041023 OK)
-  const isCodeFormatOk = useMemo(() => /^[A-Za-z0-9]+$/.test(orgCode || ""), [orgCode]);
+  const isCodeFormatOk = useMemo(
+    () => /^[A-Za-z0-9]+$/.test(orgCode || ""),
+    [orgCode]
+  );
+
+  // iOS 사파리 대응: showPicker 미지원/제한 시 포커스/클릭 폴백
+  const openNativePicker = (ref) => {
+    const el = ref.current;
+    if (!el) return;
+    try {
+      if (typeof el.showPicker === "function") {
+        el.showPicker(); // 크롬/안드로이드
+      } else {
+        el.focus();      // iOS 사파리 폴백
+        el.click();
+      }
+    } catch {
+      el.focus();
+      el.click();
+    }
+  };
 
   // 인증코드 자동 검증 (debounce)
   useEffect(() => {
@@ -63,19 +80,16 @@ export default function AdminPost() {
       setOrgName("");
       return;
     }
-
     setVerifyState("checking");
 
     const t = setTimeout(async () => {
       try {
-        // ✅ 백엔드 스펙에 맞춰 POST + JSON 바디로 호출
         const { data } = await axios.post(
           `${API_BASE}/surveys/verify-code`,
           { code: orgCode }
         );
         if (data?.valid) {
           setVerifyState("ok");
-          // ✅ agency_name 사용
           setOrgName(data?.agency_name ?? "");
         } else {
           setVerifyState("fail");
@@ -90,7 +104,6 @@ export default function AdminPost() {
     return () => clearTimeout(t);
   }, [orgCode, isCodeFormatOk]);
 
-  // 제출 가능
   const canSubmit =
     verifyState === "ok" &&
     title.trim().length > 0 &&
@@ -98,14 +111,10 @@ export default function AdminPost() {
     startAt &&
     endAt;
 
-  // datetime-local → "YYYY-MM-DDTHH:mm:ss"
-  const toIsoSeconds = (v) => (v && v.length === 16 ? `${v}:00` : v || "");
-
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!canSubmit) return;
 
-    // 필요 시 백엔드가 요구하는 포맷으로 조정
     const payload = {
       title,
       content,
@@ -115,17 +124,14 @@ export default function AdminPost() {
     };
 
     try {
-      // ⚠️ 실제 생성 엔드포인트는 프로젝트 스펙에 맞게 교체
       await axios.post(`${API_BASE}/admin/posts`, payload);
       alert("등록되었습니다.");
-      // 초기화
       setTitle("");
       setContent("");
       setStartAt("");
       setEndAt("");
-      // navigate(-1); // 필요 시 이동
     } catch (err) {
-      console.error("설문 생성 실패:", err?.response?.data || err);
+      console.error(err);
       alert("등록에 실패했습니다. 다시 시도해주세요.");
     }
   };
@@ -136,7 +142,7 @@ export default function AdminPost() {
     const [y, m, dd] = d.split("-");
     const hhmm = t?.slice(0, 5);
     return `${y}.${m.padStart(2, "0")}.${dd} ${hhmm}`;
-    };
+  };
 
   return (
     <Wrap as="form" onSubmit={onSubmit}>
@@ -157,7 +163,7 @@ export default function AdminPost() {
             type="text"
             value={orgCode}
             onChange={(e) => setOrgCode(e.target.value.trim())}
-            placeholder="기관의 인증코드를 입력해주세요. (예: 20041023)"
+            placeholder="기관의 인증코드를 입력해주세요."
             maxLength={24}
             autoComplete="off"
           />
@@ -172,7 +178,6 @@ export default function AdminPost() {
           </RightAddon>
         </CodeBox>
 
-        {/* 성공 문구 */}
         {verifyState === "ok" && orgName && (
           <CaptionSuccess>{orgName} 인증되었습니다</CaptionSuccess>
         )}
@@ -218,25 +223,44 @@ export default function AdminPost() {
             startAt && endAt ? `${formatDT(startAt)} ~ ${formatDT(endAt)}` : ""
           }
         />
+
+        {/* 라벨 연결 + onClick 폴백 (display:contents 제거) */}
         <BtnRow>
-          <GhostBlue type="button" onClick={() => startRef.current?.showPicker?.()}>
-            <FiCalendar />
-            <span>시작날짜</span>
-          </GhostBlue>
-          <GhostRed type="button" onClick={() => endRef.current?.showPicker?.()}>
-            <FiCalendar />
-            <span>종료날짜</span>
-          </GhostRed>
+          <label
+            htmlFor="startAtPicker"
+            style={{ cursor: "pointer" }}
+            onClick={() => openNativePicker(startRef)}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openNativePicker(startRef)}
+          >
+            <GhostBlue as="span" role="button" tabIndex={0}>
+              <FiCalendar />
+              <span>시작날짜</span>
+            </GhostBlue>
+          </label>
+
+          <label
+            htmlFor="endAtPicker"
+            style={{ cursor: "pointer" }}
+            onClick={() => openNativePicker(endRef)}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openNativePicker(endRef)}
+          >
+            <GhostRed as="span" role="button" tabIndex={0}>
+              <FiCalendar />
+              <span>종료날짜</span>
+            </GhostRed>
+          </label>
         </BtnRow>
 
-        {/* 숨겨진 datetime-local 입력 */}
+        {/* 숨겨진 datetime-local 입력 (DOM에 존재하며, 뷰포트 안에 있어야 iOS에서 안정적) */}
         <HiddenDateTime
+          id="startAtPicker"
           ref={startRef}
           type="datetime-local"
           value={startAt}
           onChange={(e) => setStartAt(e.target.value)}
         />
         <HiddenDateTime
+          id="endAtPicker"
           ref={endRef}
           type="datetime-local"
           value={endAt}
