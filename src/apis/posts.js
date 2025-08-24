@@ -52,3 +52,8 @@ export const createComment = async (postId, content) => {
     const res = await instance.post(`/posts/${postId}/comments`, { content });
     return res.data; // {id, writer?, content, created_at, post, ...}
 };
+
+export const sendChatMessage = async (message) => {
+    const res = await instance.post("/chat/", { message }); 
+    return res.data;
+};

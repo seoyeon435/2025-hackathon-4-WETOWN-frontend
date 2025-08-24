@@ -58,6 +58,6 @@ const Content = styled.main`
   overflow-y: auto;
 
   /* Header / BottomNav 높이만큼 여백 */
-  padding-top: 70px;
+  padding-top: 60px;
   padding-bottom: 92px;
 `;
