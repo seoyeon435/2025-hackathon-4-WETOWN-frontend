@@ -228,7 +228,7 @@ export default function SurveyDetail() {
   };
   const pick = (w) => { setChoice(w); setStep("reason"); };
 
-  /* ---------- 핵심: 낙관적 누적 + 세션 보존 ---------- */
+  /* ---------- 핵심: 낙관적 누적 + 세션 보존, 그리고 완료 화면으로 ---------- */
   const onSend = async () => {
     const ok = await tryPostVote(id, choice, reason?.trim() || undefined);
     if (!ok) {
@@ -254,11 +254,51 @@ export default function SurveyDetail() {
       saveResults(id, optimistic);
     }
 
-    setStep("result");
+    // ✅ 완료 화면으로 이동
+    setStep("done");
   };
 
-  /* ---------- 화면들 ---------- */
+  /* ---------- 완료 화면 (투표 → 완료메시지) ---------- */
+  if (step === "done") {
+    return (
+      <Wrap>
+        <TopBar>
+          <TopBackBtn onClick={() => navigate(-1)} aria-label="뒤로가기">
+            <FiChevronLeft />
+          </TopBackBtn>
+          <TopTitle>설문하기</TopTitle>
+          <div style={{ width: 32 }} />
+        </TopBar>
 
+        <DoneWrap>
+          <DoneIcon>
+            <img src={surveyDone} alt="투표 아이콘" />
+          </DoneIcon>
+          <DoneText>
+            설문 참여가 완료되었습니다. <br />
+            오늘의 참여가 내일의 더 나은 동네를 만듭니다.
+          </DoneText>
+          <PrevBtn
+            onClick={async () => {
+              // 결과 최신화: 서버가 0,0이면 기존 값 유지
+              const r = await fetchResultsOnce(id);
+              setResults((prev) => {
+                const serverTotal = r && !r.isRatioOnly ? (r.yes + r.no) : 0;
+                const next = serverTotal > 0 ? r : (prev ?? loadSaved(id) ?? { yes: 0, no: 0 });
+                saveResults(id, next);
+                return next;
+              });
+              setStep("result");
+            }}
+          >
+            결과 보기
+          </PrevBtn>
+        </DoneWrap>
+      </Wrap>
+    );
+  }
+
+  /* ---------- 결과 화면 ---------- */
   if (step === "result") {
     const yes = results?.yes ?? 0;
     const no  = results?.no  ?? 0;
@@ -302,21 +342,21 @@ export default function SurveyDetail() {
             <ResultBar style={{ minWidth: 0 }} aria-label="집계 없음" />
           )}
 
-        {total > 0 ? (
-          <div style={{ marginTop: 8, color: "#555", fontSize: 13 }}>
-            총 <b>{total}</b>표 · 찬성 <b>{yes}</b> · 반대 <b>{no}</b>
-          </div>
-        ) : (
-          <div style={{ marginTop: 8, color: "#777", fontSize: 14 }}>
-            아직 집계된 투표가 없습니다.
-          </div>
-        )}
+          {total > 0 ? (
+            <div style={{ marginTop: 8, color: "#555", fontSize: 13 }}>
+              총 <b>{total}</b>표 · 찬성 <b>{yes}</b> · 반대 <b>{no}</b>
+            </div>
+          ) : (
+            <div style={{ marginTop: 8, color: "#777", fontSize: 14 }}>
+              아직 집계된 투표가 없습니다.
+            </div>
+          )}
         </ResultCard>
       </Wrap>
     );
   }
 
-  // 선택/이유 입력 화면
+  // ---------- 선택/이유 입력 화면 ----------
   return (
     <Wrap>
       <TopBar>
