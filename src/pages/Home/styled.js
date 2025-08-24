@@ -27,7 +27,7 @@ export const HomeWrap = styled.main`
   max-width: 430px;
   margin: 0 auto;
   background: ${colors.bg};
-  padding: 0px 16px;
+  padding: 6px 16px;
   box-sizing: border-box;
   min-height: 100dvh;
 
@@ -41,51 +41,51 @@ export const Section = styled.section`
   margin-top: 14px;
 `;
 
-/* --- (1) 검색 영역 --- */
-export const SearchBar = styled.form`
-  display: grid;
-  grid-template-columns: 40px 1fr auto;
-  align-items: center;
-  gap: 8px;
-  background: #fff;
-  border: 1px solid ${colors.line};
-  border-radius: 999px;
-  padding: 12px 12px 12px 14px;
-  box-shadow: ${shadow};
-`;
+// /* --- (1) 검색 영역 --- */
+// export const SearchBar = styled.form`
+//   display: grid;
+//   grid-template-columns: 40px 1fr auto;
+//   align-items: center;
+//   gap: 8px;
+//   background: #fff;
+//   border: 1px solid ${colors.line};
+//   border-radius: 999px;
+//   padding: 12px 12px 12px 14px;
+//   box-shadow: ${shadow};
+// `;
 
-export const SearchIcon = styled.span`
-  font-size: 20px;
-  color: ${colors.muted};
-  display: grid;
-  place-items: center;
+// export const SearchIcon = styled.span`
+//   font-size: 20px;
+//   color: ${colors.muted};
+//   display: grid;
+//   place-items: center;
 
-  /* react-icons 크기 보정 */
-  svg { width: 1em; height: 1em; }
-`;
+//   /* react-icons 크기 보정 */
+//   svg { width: 1em; height: 1em; }
+// `;
 
-export const SearchInput = styled.input`
-  border: none;
-  outline: none;
-  font-size: 14px;
-  color: ${colors.text};
-  background: transparent;
-  width: 100%;
+// export const SearchInput = styled.input`
+//   border: none;
+//   outline: none;
+//   font-size: 14px;
+//   color: ${colors.text};
+//   background: transparent;
+//   width: 100%;
 
-  &::placeholder { color: #adb3ba; }
-`;
+//   &::placeholder { color: #adb3ba; }
+// `;
 
-export const SearchSubmit = styled.button`
-  border: none;
-  background: ${colors.brand};
-  color: #fff;
-  padding: 9px 16px;
-  border-radius: 999px;
-  font-size: 13px;
-  cursor: pointer;
+// export const SearchSubmit = styled.button`
+//   border: none;
+//   background: ${colors.brand};
+//   color: #fff;
+//   padding: 9px 16px;
+//   border-radius: 999px;
+//   font-size: 13px;
+//   cursor: pointer;
 
-  &:active { transform: translateY(1px); }
-`;
+//   &:active { transform: translateY(1px); }
+// `;
 
 /* 액션 버튼 (제보/설문) */
 export const ActionButtons = styled.div`
@@ -211,7 +211,7 @@ export const NewsGrid = styled.div`
 `;
 
 export const NewsCard = styled.div`
-  aspect-ratio: 1 / 1;
+  height: 100px;
   border-radius: 10px;
   overflow: hidden;
   background: #cfd6dd;
@@ -228,28 +228,28 @@ export const NewsCard = styled.div`
 `;
 
 // --- (검색 제안 패널) ---
-export const SearchWrap = styled.div`
-  position: relative;  /* 패널을 입력창 바로 아래에 고정하기 위해 */
-`;
+// export const SearchWrap = styled.div`
+//   position: relative;  /* 패널을 입력창 바로 아래에 고정하기 위해 */
+// `;
 
-export const SuggestPanel = styled.div`
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(100% + 10px);   /* 검색창 아래 여백 */
-  background: ${colors.card};
-  border: 1px solid ${colors.line};
-  border-radius: 14px;
-  box-shadow: ${shadow};
-  padding: 14px 14px 16px;
-  z-index: 20;
-`;
+// export const SuggestPanel = styled.div`
+//   position: absolute;
+//   left: 0;
+//   right: 0;
+//   top: calc(100% + 10px);   /* 검색창 아래 여백 */
+//   background: ${colors.card};
+//   border: 1px solid ${colors.line};
+//   border-radius: 14px;
+//   box-shadow: ${shadow};
+//   padding: 14px 14px 16px;
+//   z-index: 20;
+// `;
 
-export const SuggestTitle = styled.div`
-  font-size: 12px;
-  color: ${colors.muted};
-  margin-bottom: 10px;
-`;
+// export const SuggestTitle = styled.div`
+//   font-size: 12px;
+//   color: ${colors.muted};
+//   margin-bottom: 10px;
+// `;
 
 export const ChipGrid = styled.div`
   display: grid;
