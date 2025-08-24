@@ -1,18 +1,60 @@
 // src/pages/DetailPage/DetailPage.jsx
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import styled from "styled-components";
-import axios from "axios";
-import { useDetailPage } from "../../hooks/DetailPage/useDetailPage";
 import * as S from "./DetailPage.styled";
-import { FiArrowLeft, FiMessageCircle, FiBookmark, FiSend } from "react-icons/fi";
+import { FiMessageCircle, FiBookmark, FiSend } from "react-icons/fi";
 import { AiOutlineLike } from "react-icons/ai";
-
+import { useDetailPage } from "../../hooks/DetailPage/useDetailPage";
+import instance from "../../apis/instance"; // axios 인스턴스
 
 const DetailPage = () => {
     const { postId } = useParams();
     const navigate = useNavigate();
-    const { post, comments, loading } = useDetailPage(postId);
+
+    const { post, comments, loading, refetch } = useDetailPage(postId);
+
+    const [likes, setLikes] = useState(0);
+    const [isLiked, setIsLiked] = useState(false);
+    const [liking, setLiking] = useState(false);
+
+    useEffect(() => {
+        if (!post) return;
+        setLikes(Number(post.likes_count ?? 0));
+        setIsLiked(Boolean(post.is_liked));
+    }, [post]);
+
+    const handleLike = async () => {
+        if (liking) return;
+        setLiking(true);
+
+        try {
+            let res;
+            if (isLiked) {
+                // 🔥 핵심 수정: DELETE를 request()로 명시적 호출
+                res = await instance.request({
+                    url: `/posts/${postId}/like`,
+                    method: "DELETE",
+                    data: {}, // 이 위치여야 함!
+                });
+            } else {
+                res = await instance.post(`/posts/${postId}/like`, {});
+            }
+
+            if (res?.data) {
+                setLikes(Number(res.data.likes_count));
+                setIsLiked(Boolean(res.data.is_liked));
+            } else {
+                const fresh = await refetch();
+                setLikes(Number(fresh.likes_count ?? 0));
+                setIsLiked(Boolean(fresh.is_liked));
+            }
+        } catch (e) {
+            console.error("좋아요 요청 실패:", e);
+        } finally {
+            setLiking(false);
+        }
+    };
+
 
     if (loading) {
         return (
@@ -39,9 +81,9 @@ const DetailPage = () => {
     return (
         <S.Wrap>
             <S.Header>
-                <S.BackBtn onClick={() => navigate(-1)}>
+                <S.BackBtn onClick={() => navigate(-1)} aria-label="뒤로가기">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                        <path d="M4 10L13 19L14.4 17.5L7 10L14.4 2.5L13 1L4 10Z" fill="black"/>
+                        <path d="M4 10L13 19L14.4 17.5L7 10L14.4 2.5L13 1L4 10Z" fill="black" />
                     </svg>
                 </S.BackBtn>
             </S.Header>
@@ -51,7 +93,7 @@ const DetailPage = () => {
                     <S.Avatar />
                     <div>
                         <S.Author>{post.writer ?? "익명"}</S.Author>
-                        <S.DateText>{formatDate(post.createdAt)}</S.DateText>
+                        <S.DateText>{formatDate(post.created_at)}</S.DateText>
                     </div>
                 </S.AuthorRow>
 
@@ -71,15 +113,24 @@ const DetailPage = () => {
 
                 <S.MetaBar>
                     <S.MetaLeft>
-                        <S.MetaItem highlight>
-                            <AiOutlineLike />
-                            <span>{post.likes_count ?? 0}</span>
+                        {/* 좋아요 버튼 */}
+                        <S.MetaItem
+                            highlight
+                            onClick={handleLike}
+                            style={{ cursor: liking ? "not-allowed" : "pointer", opacity: liking ? 0.6 : 1 }}
+                            title={isLiked ? "좋아요 취소" : "좋아요"}
+                            aria-pressed={isLiked}
+                        >
+                            <AiOutlineLike color={isLiked ? "#e11d48" : "#111"} />
+                            <span>{likes}</span>
                         </S.MetaItem>
-                        <S.MetaItem>
+
+                        <S.MetaItem title="댓글 수">
                             <FiMessageCircle />
                             <span>{comments.length}</span>
                         </S.MetaItem>
                     </S.MetaLeft>
+
                     <S.MetaRight>
                         <S.IconBtn aria-label="bookmark">
                             <FiBookmark />
@@ -90,7 +141,7 @@ const DetailPage = () => {
 
             <S.CommentsWrap>
                 {comments.map((c, idx) => (
-                    <S.CommentItem key={c.id}>
+                    <S.CommentItem key={c.id ?? idx}>
                         <S.No>익명 {idx + 1}</S.No>
                         <S.Bubble>{c.content}</S.Bubble>
                     </S.CommentItem>

@@ -17,3 +17,27 @@ export const getNewsDetail = async (id) => {
     const res = await instance.get(`/news/${id}`);
     return res.data;
 };
+
+
+
+// 좋아요 토글 (POST /posts/{id}/like/)
+export const toggleLike = async (postId) => {
+    const res = await instance.post(`/posts/${postId}/like`, {});
+    return res.data; // { likes_count, is_liked }
+};
+
+
+
+
+
+
+// 게시글 상세 조회 API 
+export const getPostDetail = async (postId) => {
+    const res = await instance.get(`/posts/${postId}`, {
+        params: { _: Date.now() },
+    });
+    return res.data; // { likes_count, is_liked, ... }
+};
+
+
+
