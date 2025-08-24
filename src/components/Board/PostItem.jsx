@@ -14,7 +14,7 @@ const PostItem = ({ post }) => {
       <Card>
         {/* 왼쪽 텍스트 */}
         <TextArea>
-          <Location>📍 위치 : {post?.dong ?? "없음X"}</Location>
+          <Location>📍 위치 : {post?.location_detail ?? "없음X"}</Location>
           <Title>{post?.title ?? ""}</Title>
           <PostDate>{formatDate(post?.created_at)}</PostDate>
         </TextArea>
