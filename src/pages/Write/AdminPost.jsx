@@ -24,33 +24,15 @@ import {
   BottomSpacer,
 } from "./admin.styled";
 
-const API_BASE = (import.meta.env.VITE_BASE_URL || "").replace(/\/+$/, "");
 
-/** POST /surveys/verify-code  (슬래시 없음, 바디 { code }) */
-async function verifyCode(apiBase, rawCode) {
-  const code = String(rawCode ?? "").trim();
-  if (!code) return { ok: false, name: "" };
+const API_BASE = import.meta.env.VITE_BASE_URL;
+import { createSurvey } from "../../apis/surveys"; // (사용 중이 아니면 제거해도 무방)
 
-  try {
-    const { data } = await axios.post(`${apiBase}/surveys/verify-code`, { code });
-    const ok =
-      (typeof data?.valid === "boolean" ? data.valid : undefined) ??
-      (typeof data?.is_valid === "boolean" ? data.is_valid : undefined) ??
-      (typeof data?.ok === "boolean" ? data.ok : undefined) ??
-      false;
-
-    const name =
-      data?.name ??
-      data?.orgName ??
-      data?.org_name ??
-      data?.org?.name ??
-      "";
-
-    return { ok: Boolean(ok), name };
-  } catch (e) {
-    return { ok: false, name: "" };
-  }
-}
+/**
+ * 인증 API
+ * POST `${API_BASE}/surveys/verify-code`  -> { valid, agency_id, agency_name }
+ * (예: { "valid": true, "agency_id": 1, "agency_name": "장충동 주민센터" })
+ */
 
 export default function AdminPost() {
   const navigate = useNavigate();
@@ -83,12 +65,23 @@ export default function AdminPost() {
     }
 
     setVerifyState("checking");
+
     const t = setTimeout(async () => {
-      const { ok, name } = await verifyCode(API_BASE, orgCode);
-      if (ok) {
-        setVerifyState("ok");
-        setOrgName(name || ""); // 예: 장충동 주민센터
-      } else {
+      try {
+        // ✅ 백엔드 스펙에 맞춰 POST + JSON 바디로 호출
+        const { data } = await axios.post(
+          `${API_BASE}/surveys/verify-code`,
+          { code: orgCode }
+        );
+        if (data?.valid) {
+          setVerifyState("ok");
+          // ✅ agency_name 사용
+          setOrgName(data?.agency_name ?? "");
+        } else {
+          setVerifyState("fail");
+          setOrgName("");
+        }
+      } catch {
         setVerifyState("fail");
         setOrgName("");
       }
@@ -112,17 +105,18 @@ export default function AdminPost() {
     e.preventDefault();
     if (!canSubmit) return;
 
-    // DRF 스펙에 맞게 보냄
+    // 필요 시 백엔드가 요구하는 포맷으로 조정
     const payload = {
-      code: orgCode,
       title,
-      description: content,
-      start_at: toIsoSeconds(startAt),
-      end_at: toIsoSeconds(endAt),
+      content,
+      start_at: startAt.length === 16 ? `${startAt}:00` : startAt,
+      end_at: endAt.length === 16 ? `${endAt}:00` : endAt,
+      org_code: orgCode,
     };
 
     try {
-      await axios.post(`${API_BASE}/surveys/`, payload);
+      // ⚠️ 실제 생성 엔드포인트는 프로젝트 스펙에 맞게 교체
+      await axios.post(`${API_BASE}/admin/posts`, payload);
       alert("등록되었습니다.");
       // 초기화
       setTitle("");
@@ -142,7 +136,7 @@ export default function AdminPost() {
     const [y, m, dd] = d.split("-");
     const hhmm = t?.slice(0, 5);
     return `${y}.${m.padStart(2, "0")}.${dd} ${hhmm}`;
-  };
+    };
 
   return (
     <Wrap as="form" onSubmit={onSubmit}>
@@ -177,8 +171,10 @@ export default function AdminPost() {
             )}
           </RightAddon>
         </CodeBox>
+
+        {/* 성공 문구 */}
         {verifyState === "ok" && orgName && (
-          <CaptionSuccess>{orgName}</CaptionSuccess>
+          <CaptionSuccess>{orgName} 인증되었습니다</CaptionSuccess>
         )}
         {verifyState === "format" && (
           <CaptionError>영문과 숫자만 입력해주세요.</CaptionError>
