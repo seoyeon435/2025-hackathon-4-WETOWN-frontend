@@ -24,7 +24,7 @@ export default CategoryButtons2;
 
 const Wrapper = styled.div`
     position: absolute;
-    top: 128px; 
+    top: 118px; 
     left: 50%;
     transform: translateX(-50%);
     width: 90%;
