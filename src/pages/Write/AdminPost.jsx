@@ -26,11 +26,50 @@ import {
 
 const API_BASE = import.meta.env.VITE_BASE_URL;
 
-/**
- * 인증 API
- * POST `${API_BASE}/surveys/verify-code`  -> { valid, agency_id, agency_name }
- * (예: { "valid": true, "agency_id": 1, "agency_name": "장충동 주민센터" })
- */
+/* ---------------- axios 공통 설정 ---------------- */
+const getCookie = (name) => {
+  if (typeof document === "undefined") return "";
+  const match = document.cookie.match(new RegExp("(^|; )" + name + "=([^;]*)"));
+  return match ? decodeURIComponent(match[2]) : "";
+};
+
+const api = axios.create({
+  baseURL: API_BASE?.replace(/\/+$/, "") || "",
+  withCredentials: true, // 쿠키 기반 인증일 때 필수
+  headers: { "Content-Type": "application/json" },
+});
+
+// 요청마다 CSRF/토큰 붙이기
+api.interceptors.request.use((cfg) => {
+  // CSRF (Django/DRF 등)
+  const csrf = getCookie("csrftoken") || getCookie("CSRF-TOKEN") || getCookie("XSRF-TOKEN");
+  if (csrf && !cfg.headers["X-CSRFToken"] && !cfg.headers["X-CSRF-Token"]) {
+    cfg.headers["X-CSRFToken"] = csrf;
+    cfg.headers["X-CSRF-Token"] = csrf;
+  }
+  // JWT/기타 토큰 (있을 때만)
+  const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
+  if (token && !cfg.headers.Authorization) {
+    cfg.headers.Authorization = token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+  }
+  return cfg;
+});
+
+// / 와 /없음 둘 다 시도
+const postWithSlashFallback = async (path, body) => {
+  const p = path.startsWith("/") ? path : `/${path}`;
+  try {
+    return await api.post(p, body);
+  } catch (err) {
+    const st = err?.response?.status;
+    if (st === 404 || st === 405) {
+      const alt = p.endsWith("/") ? p.slice(0, -1) : `${p}/`;
+      return await api.post(alt, body);
+    }
+    throw err;
+  }
+};
+/* ------------------------------------------------ */
 
 export default function AdminPost() {
   const navigate = useNavigate();
@@ -56,15 +95,10 @@ export default function AdminPost() {
     const el = ref.current;
     if (!el) return;
     try {
-      if (typeof el.showPicker === "function") {
-        el.showPicker(); // 크롬/안드로이드
-      } else {
-        el.focus();      // iOS 사파리 폴백
-        el.click();
-      }
+      if (typeof el.showPicker === "function") el.showPicker(); // 크롬/안드로이드
+      else { el.focus(); el.click(); }                          // iOS 사파리 폴백
     } catch {
-      el.focus();
-      el.click();
+      el.focus(); el.click();
     }
   };
 
@@ -84,10 +118,7 @@ export default function AdminPost() {
 
     const t = setTimeout(async () => {
       try {
-        const { data } = await axios.post(
-          `${API_BASE}/surveys/verify-code`,
-          { code: orgCode }
-        );
+        const { data } = await api.post("/surveys/verify-code", { code: orgCode });
         if (data?.valid) {
           setVerifyState("ok");
           setOrgName(data?.agency_name ?? "");
@@ -95,7 +126,9 @@ export default function AdminPost() {
           setVerifyState("fail");
           setOrgName("");
         }
-      } catch {
+      } catch (err) {
+        // 4xx면 메시지 보여주기(디버깅 도움)
+        console.warn("verify-code failed", err?.response?.status, err?.response?.data);
         setVerifyState("fail");
         setOrgName("");
       }
@@ -124,15 +157,34 @@ export default function AdminPost() {
     };
 
     try {
-      await axios.post(`${API_BASE}/admin/posts`, payload);
+      await postWithSlashFallback("/admin/posts", payload);
       alert("등록되었습니다.");
       setTitle("");
       setContent("");
       setStartAt("");
       setEndAt("");
     } catch (err) {
-      console.error(err);
-      alert("등록에 실패했습니다. 다시 시도해주세요.");
+      const status = err?.response?.status;
+      const detail =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        JSON.stringify(err?.response?.data || {});
+      console.error("Create failed:", status, detail, err);
+
+      if (status === 403) {
+        alert(
+          "등록이 차단되었어요(403).\n" +
+          "- 로그인/권한/CSRF 문제가 있을 수 있어요.\n" +
+          "- 프런트와 API가 다른 도메인이면 서버 CORS에서 credentials 허용과 Origin 화이트리스트 설정이 필요해요.\n" +
+          "- 쿠키 기반이면 CSRF 토큰 설정을 확인해주세요."
+        );
+      } else if (status === 400) {
+        alert(`요청 형식 오류(400): ${detail}`);
+      } else if (status === 401) {
+        alert("인증 필요(401): 로그인 토큰이 없거나 만료되었습니다.");
+      } else {
+        alert(`등록에 실패했습니다. [${status ?? "네트워크"}] ${detail}`);
+      }
     }
   };
 
@@ -224,13 +276,11 @@ export default function AdminPost() {
           }
         />
 
-        {/* 라벨 연결 + onClick 폴백 (display:contents 제거) */}
         <BtnRow>
           <label
             htmlFor="startAtPicker"
             style={{ cursor: "pointer" }}
-            onClick={() => openNativePicker(startRef)}
-            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openNativePicker(startRef)}
+            onClick={() => openNativePicker({ current: document.getElementById("startAtPicker") })}
           >
             <GhostBlue as="span" role="button" tabIndex={0}>
               <FiCalendar />
@@ -241,8 +291,7 @@ export default function AdminPost() {
           <label
             htmlFor="endAtPicker"
             style={{ cursor: "pointer" }}
-            onClick={() => openNativePicker(endRef)}
-            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openNativePicker(endRef)}
+            onClick={() => openNativePicker({ current: document.getElementById("endAtPicker") })}
           >
             <GhostRed as="span" role="button" tabIndex={0}>
               <FiCalendar />
@@ -251,13 +300,14 @@ export default function AdminPost() {
           </label>
         </BtnRow>
 
-        {/* 숨겨진 datetime-local 입력 (DOM에 존재하며, 뷰포트 안에 있어야 iOS에서 안정적) */}
+        {/* 숨겨진 datetime-local 입력 (뷰포트 안에 두기) */}
         <HiddenDateTime
           id="startAtPicker"
           ref={startRef}
           type="datetime-local"
           value={startAt}
           onChange={(e) => setStartAt(e.target.value)}
+          style={{ position:"absolute", width:1, height:1, opacity:0 }}
         />
         <HiddenDateTime
           id="endAtPicker"
@@ -265,6 +315,7 @@ export default function AdminPost() {
           type="datetime-local"
           value={endAt}
           onChange={(e) => setEndAt(e.target.value)}
+          style={{ position:"absolute", width:1, height:1, opacity:0 }}
         />
       </Field>
 
