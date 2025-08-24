@@ -25,12 +25,12 @@ import {
 } from "./admin.styled";
 
 const API_BASE = import.meta.env.VITE_BASE_URL;
-import { createSurvey } from "../../apis/surveys";
+import { createSurvey } from "../../apis/surveys"; // (사용 중이 아니면 제거해도 무방)
 
 /**
- * 인증 API (예시)
- * GET  `${API_BASE}/admin/orgs/verify?code=${code}`  -> { valid: boolean, orgName?: string }
- * POST `${API_BASE}/admin/posts/`                    -> { orgCode, title, content, startAt, endAt }
+ * 인증 API
+ * POST `${API_BASE}/surveys/verify-code`  -> { valid, agency_id, agency_name }
+ * (예: { "valid": true, "agency_id": 1, "agency_name": "장충동 주민센터" })
  */
 
 export default function AdminPost() {
@@ -65,14 +65,18 @@ export default function AdminPost() {
       return;
     }
     setVerifyState("checking");
+
     const t = setTimeout(async () => {
       try {
-        const { data } = await axios.get(`${API_BASE}/admin/orgs/verify`, {
-          params: { code: orgCode },
-        });
+        // ✅ 백엔드 스펙에 맞춰 POST + JSON 바디로 호출
+        const { data } = await axios.post(
+          `${API_BASE}/surveys/verify-code`,
+          { code: orgCode }
+        );
         if (data?.valid) {
           setVerifyState("ok");
-          setOrgName(data?.orgName ?? "");
+          // ✅ agency_name 사용
+          setOrgName(data?.agency_name ?? "");
         } else {
           setVerifyState("fail");
           setOrgName("");
@@ -82,6 +86,7 @@ export default function AdminPost() {
         setOrgName("");
       }
     }, 450);
+
     return () => clearTimeout(t);
   }, [orgCode, isCodeFormatOk]);
 
@@ -95,23 +100,19 @@ export default function AdminPost() {
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!canSubmit) return;
-    // datetime-local → 백엔드가 요구하는 형태로 맞춤
-  // 일반적으로 ISO 문자열("2025-08-23T11:30:00")로 충분. 타임존 처리 필요시 Z/offset 추가.
-  const payload = {
-    title,
-    content,
-    start_at: startAt.length === 16 ? `${startAt}:00` : startAt,
-    end_at: endAt.length === 16 ? `${endAt}:00` : endAt,
-    ...(orgCode ? { org_code: orgCode } : {}),
-  };
+
+    // 필요 시 백엔드가 요구하는 포맷으로 조정
+    const payload = {
+      title,
+      content,
+      start_at: startAt.length === 16 ? `${startAt}:00` : startAt,
+      end_at: endAt.length === 16 ? `${endAt}:00` : endAt,
+      org_code: orgCode,
+    };
+
     try {
-      await axios.post(`${API_BASE}/admin/posts`, {
-        orgCode,
-        title,
-        content,
-        startAt,
-        endAt,
-      });
+      // ⚠️ 실제 생성 엔드포인트는 프로젝트 스펙에 맞게 교체
+      await axios.post(`${API_BASE}/admin/posts`, payload);
       alert("등록되었습니다.");
       setTitle("");
       setContent("");
@@ -129,7 +130,7 @@ export default function AdminPost() {
     const [y, m, dd] = d.split("-");
     const hhmm = t?.slice(0, 5);
     return `${y}.${m.padStart(2, "0")}.${dd} ${hhmm}`;
-  };
+    };
 
   return (
     <Wrap as="form" onSubmit={onSubmit}>
@@ -164,8 +165,10 @@ export default function AdminPost() {
             )}
           </RightAddon>
         </CodeBox>
+
+        {/* ✅ 성공 문구 */}
         {verifyState === "ok" && orgName && (
-          <CaptionSuccess>{orgName}</CaptionSuccess>
+          <CaptionSuccess>{orgName} 인증되었습니다</CaptionSuccess>
         )}
         {verifyState === "format" && (
           <CaptionError>영문과 숫자만 입력해주세요.</CaptionError>
