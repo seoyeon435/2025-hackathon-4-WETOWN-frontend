@@ -302,11 +302,15 @@ export default function SurveyDetail() {
             <ResultBar style={{ minWidth: 0 }} aria-label="집계 없음" />
           )}
 
-          {total === 0 && (
-            <div style={{ marginTop: 8, color: "#777", fontSize: 14 }}>
-              아직 집계된 투표가 없습니다.
-            </div>
-          )}
+        {total > 0 ? (
+          <div style={{ marginTop: 8, color: "#555", fontSize: 13 }}>
+            총 <b>{total}</b>표 · 찬성 <b>{yes}</b> · 반대 <b>{no}</b>
+          </div>
+        ) : (
+          <div style={{ marginTop: 8, color: "#777", fontSize: 14 }}>
+            아직 집계된 투표가 없습니다.
+          </div>
+        )}
         </ResultCard>
       </Wrap>
     );

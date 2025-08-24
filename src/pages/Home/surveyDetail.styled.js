@@ -262,3 +262,8 @@ export const PrevBtn = styled.button`
   &:active { transform: translateY(1px); }
   cursor: pointer;
 `;
+
+// 결과 스타일 (표 갯수)
+export const ResultCaption = styled.div`
+  margin-top: 8px; color:#555; font-size:13px;
+`;
