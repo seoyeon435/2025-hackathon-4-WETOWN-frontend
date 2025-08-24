@@ -67,9 +67,11 @@ const DetailPage = () => {
             console.error("좋아요 요청 실패:", e);
         } finally {
             setLiking(false);
+            setShowCommentInput(false);
         }
     };
 
+    // 댓글 전송
     // 댓글 전송
     const submitComment = async (e) => {
         e.preventDefault();
@@ -98,8 +100,10 @@ const DetailPage = () => {
             setLocalComments((prev) => prev.filter((c) => c.id !== tempId));
         } finally {
             setSubmitting(false);
+            setShowCommentInput(false); // ✅ 댓글 등록 후 입력창 닫기
         }
     };
+
 
     if (loading) {
         return (
