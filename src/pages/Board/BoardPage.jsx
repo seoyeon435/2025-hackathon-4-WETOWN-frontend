@@ -1,4 +1,4 @@
-import { useState, useEffect,useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import axios from "axios";
@@ -159,26 +159,69 @@ const Filters = styled.div`
     padding: 0 15px 8px 15px;
 `;
 
+
 const Select = styled.select`
-    padding: 4px 6px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
+    height: 30px;
+    padding: 0 8px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
     background: #fff;
+    font-size: 13px;
+    color: #333;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: border 0.2s, box-shadow 0.2s;
+
+    &:hover {
+        border-color: #aaa;
+    }
+
+    &:focus {
+        outline: none;
+        border-color: #2C917B;
+        box-shadow: 0 0 0 3px rgba(44,145,123,0.15);
+    }
 `;
+
+
 
 const Dates = styled.div`
     display: flex;
-    gap: 5px;
+    gap: 8px;
     align-items: center;
+
     & > input {
-        width: 100px;  
-        height: 20px;       
-        padding: 2px 4px;     
-        font-size: 12px;      
-        border-radius: 6px;   
-        border: 1px solid #ddd;
+        width: 86px;
+        height: 30px;
+        padding: 0 10px;
+        font-size: 13px;
+        border-radius: 10px;
+        border: 1px solid #ccc;
+        background: #fff;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        transition: border .2s, box-shadow .2s;
+
+        &:hover {
+            border-color: #aaa;
+        }
+        &:focus {
+            outline: none;
+            border-color: #2C917B;
+            box-shadow: 0 0 0 3px rgba(44,145,123,.15);
+        }
+
+        &::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            opacity: 0.7;
+        }
+    }
+
+    & > span {
+        color: #666;
+        font-size: 14px;
+        margin: 0 4px;
     }
 `;
+
 
 
 const WriteBtn = styled.button`
