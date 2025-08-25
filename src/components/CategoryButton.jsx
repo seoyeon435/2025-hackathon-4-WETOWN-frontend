@@ -47,10 +47,10 @@ const Button = styled.button`
   font-size: 12px;
   transition: 0.2s all;
 
-  background: ${(p) => (p.$selected ? "#4B6BFB" : "#fff")};
+  background: ${(p) => (p.$selected ? "#00B890" : "#fff")};
   color: ${(p) => (p.$selected ? "#fff" : "#333")};
 
   &:hover {
-    background: ${(p) => (p.$selected ? "#3a56d4" : "#f5f5f5")};
+    background: ${(p) => (p.$selected ? "#00B890" : "#f5f5f5")};
   }
 `;

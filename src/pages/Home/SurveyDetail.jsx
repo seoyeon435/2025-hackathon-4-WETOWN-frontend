@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { FiChevronLeft, FiSend } from "react-icons/fi";
+import { FiChevronLeft, FiSend, FiCalendar } from "react-icons/fi"; // ⬅️ 캘린더 아이콘 추가
 import { AiOutlineLike, AiOutlineDislike } from "react-icons/ai";
 import surveyDone from "../../components/assets/surveyDone.svg";
 
@@ -153,6 +153,21 @@ async function fetchResultsOnce(id) {
   return null;
 }
 
+/* ---------- 기간 포맷 (AdminPost 참고) ---------- */
+const formatDT = (v) => {
+  if (!v) return "";
+  // 허용: "YYYY-MM-DDTHH:mm", "YYYY-MM-DDTHH:mm:ss", "YYYY-MM-DD HH:mm", ISO 등
+  const iso = v.replace(" ", "T");
+  const [d, tRaw] = iso.split("T");
+  if (!d) return v;
+  const [y, m, dd] = d.split("-");
+  const hhmm = (tRaw || "").slice(0, 5);
+  return `${y}.${String(m).padStart(2, "0")}.${String(dd).padStart(2, "0")} ${hhmm}`;
+};
+
+// detail에서 다양한 키 이름 지원
+const pick = (obj, keys) => keys.find((k) => obj?.[k] != null) ? obj[keys.find((k) => obj?.[k] != null)] : undefined;
+
 export default function SurveyDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -192,14 +207,12 @@ export default function SurveyDetail() {
         if (!alive) return;
 
         if (r && !r.isRatioOnly && (r.yes + r.no) >= 0) {
-          // 서버가 정수 카운트 주면 세션/상태 업데이트
           setResults((prev) => {
             const next = prev ?? r; // 기존 세션이 있으면 유지
             saveResults(id, next);
             return next;
           });
         } else if (results == null) {
-          // 서버 값이 없고 세션도 없으면 0,0으로 시드
           setResults({ yes: 0, no: 0 });
           saveResults(id, { yes: 0, no: 0 });
         }
@@ -226,7 +239,7 @@ export default function SurveyDetail() {
     if (step === "reason") { setStep("choose"); return; }
     navigate(-1);
   };
-  const pick = (w) => { setChoice(w); setStep("reason"); };
+  const pickChoice = (w) => { setChoice(w); setStep("reason"); };
 
   /* ---------- 핵심: 낙관적 누적 + 세션 보존, 그리고 완료 화면으로 ---------- */
   const onSend = async () => {
@@ -240,11 +253,9 @@ export default function SurveyDetail() {
     const fresh = await fetchResultsOnce(id);
 
     if (fresh && !fresh.isRatioOnly && (fresh.yes + fresh.no) > 0) {
-      // 서버가 실제 카운트를 주면 그것으로 동기화
       setResults(fresh);
       saveResults(id, fresh);
     } else {
-      // 서버가 0,0 / null / 비율만 준 경우: 세션값 기준으로 낙관적 +1
       const base = loadSaved(id) ?? results ?? { yes: 0, no: 0 };
       const optimistic = {
         yes: base.yes + (choice === "good" ? 1 : 0),
@@ -254,9 +265,16 @@ export default function SurveyDetail() {
       saveResults(id, optimistic);
     }
 
-    // ✅ 완료 화면으로 이동
     setStep("done");
   };
+
+  // 기간 정보 뽑기
+  const startRaw = pick(detail, ["start_at", "startAt", "start_time", "start"]);
+  const endRaw   = pick(detail, ["end_at", "endAt", "end_time", "end"]);
+  const hasPeriod = !!(startRaw || endRaw);
+  const periodText = hasPeriod
+    ? `${startRaw ? formatDT(startRaw) : ""}${startRaw && endRaw ? " ~ " : (startRaw ? " ~" : "~ ")}${endRaw ? formatDT(endRaw) : ""}`
+    : "";
 
   /* ---------- 완료 화면 (투표 → 완료메시지) ---------- */
   if (step === "done") {
@@ -280,7 +298,6 @@ export default function SurveyDetail() {
           </DoneText>
           <PrevBtn
             onClick={async () => {
-              // 결과 최신화: 서버가 0,0이면 기존 값 유지
               const r = await fetchResultsOnce(id);
               setResults((prev) => {
                 const serverTotal = r && !r.isRatioOnly ? (r.yes + r.no) : 0;
@@ -328,6 +345,24 @@ export default function SurveyDetail() {
         <TitleBlock>
           <TitleMain>{detail?.title || "제목"}</TitleMain>
           <TitleSub>{detail?.description || detail?.content || ""}</TitleSub>
+
+          {/* ⬇️ 투표 기한 표시 */}
+          {hasPeriod && (
+            <div
+              style={{
+                marginTop: 8,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 13,
+                color: "#666",
+              }}
+            >
+              <FiCalendar aria-hidden />
+              <span>설문 기한</span>
+              <span style={{ fontWeight: 500 }}>{periodText}</span>
+            </div>
+          )}
         </TitleBlock>
 
         <ResultCard>
@@ -384,6 +419,24 @@ export default function SurveyDetail() {
           <TitleBlock>
             <TitleMain>{detail?.title || "제목"}</TitleMain>
             <TitleSub>{detail?.description || detail?.content || ""}</TitleSub>
+
+            {/* ⬇️ 투표 기한 표시 */}
+            {hasPeriod && (
+              <div
+                style={{
+                  marginTop: 8,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 13,
+                  color: "#666",
+                }}
+              >
+                <FiCalendar aria-hidden />
+                <span>설문 기한</span>
+                <span style={{ fontWeight: 500 }}>{periodText}</span>
+              </div>
+            )}
           </TitleBlock>
 
           <VoteCard>

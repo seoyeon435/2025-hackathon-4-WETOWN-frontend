@@ -161,6 +161,7 @@ const Filters = styled.div`
     display: flex;
     gap: 15px;
     align-items: center;
+    justify-content: center;
     padding: 0 15px 8px 15px;
 `;
 
