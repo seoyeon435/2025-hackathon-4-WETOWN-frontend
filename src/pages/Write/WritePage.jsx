@@ -118,6 +118,9 @@ const WritePage = () => {
       form.append("writer", author);
       form.append("category", cat);
       form.append("area", area);
+      form.append("dong", area);              // 동 선택값
+      form.append("location_detail", addr);   // 정확한 위치 입력값
+
       if (addr) form.append("address", addr);
       form.append("latitude", String(mapLat));
       form.append("longitude", String(mapLng));
