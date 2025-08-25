@@ -31,7 +31,7 @@ export default function AdminPost() {
 
   const [orgCode, setOrgCode] = useState("");
   const [orgName, setOrgName] = useState("");
-  const [agencyId, setAgencyId] = useState(null); // ✅ 추가
+  const [agencyId, setAgencyId] = useState(null);
   const [verifyState, setVerifyState] = useState("idle"); // idle | checking | ok | fail | format
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -46,15 +46,15 @@ export default function AdminPost() {
     [orgCode]
   );
 
-  // iOS 사파리 대응
-  const openNativePicker = (ref) => {
-    const el = ref.current;
+  // ✅ datetime-local 기본 UI 열기 (iOS 대응)
+  const openNativePicker = (refId) => {
+    const el = document.getElementById(refId);
     if (!el) return;
     try {
       if (typeof el.showPicker === "function") {
-        el.showPicker();
+        el.showPicker(); // 크롬, 안드로이드
       } else {
-        el.focus();
+        el.focus();      // iOS 사파리 폴백
         el.click();
       }
     } catch {
@@ -88,7 +88,7 @@ export default function AdminPost() {
         if (data?.valid) {
           setVerifyState("ok");
           setOrgName(data?.agency_name ?? "");
-          setAgencyId(data?.agency_id ?? null); // ✅ agency_id 저장
+          setAgencyId(data?.agency_id ?? null);
         } else {
           setVerifyState("fail");
           setOrgName("");
@@ -120,13 +120,10 @@ export default function AdminPost() {
       description: content,
       start_at: startAt.length === 16 ? `${startAt}:00` : startAt,
       end_at: endAt.length === 16 ? `${endAt}:00` : endAt,
-      code: orgCode,      // ✅ 서버가 요구하는 필드
-      // agency: agencyId  // 필요없을 수 있음 → 서버에서 code로 agency 연결
+      code: orgCode, // ✅ 서버 요구 필드
     };
 
-
     try {
-      // ✅ 여기서 찍어보기
       console.log("payload:", payload);
 
       await axios.post(`${API_BASE}/surveys/`, payload, {
@@ -147,7 +144,6 @@ export default function AdminPost() {
       alert("등록에 실패했습니다. 다시 시도해주세요.");
     }
   };
-
 
   const formatDT = (v) => {
     if (!v) return "";
@@ -237,30 +233,31 @@ export default function AdminPost() {
           }
         />
 
-        <BtnRow>
-          <label htmlFor="startAtPicker" onClick={() => openNativePicker(startRef)}>
-            <GhostBlue
-              type="button"
-              $active={!!startAt}   // ✅ 값이 있으면 강조
-            >
-              <FiCalendar />
-              {startAt ? "시작 선택됨" : "시작날짜"}
-            </GhostBlue>
-          </label>
+        <BtnRow style={{ gap: 10 }}>
+          <GhostBlue
+            as="button"
+            type="button"
+            title="시작날짜 선택"
+            onClick={() => openNativePicker("startAtPicker")}
+          >
+            <FiCalendar />
+            <span>{startAt ? "시작 선택됨" : "시작날짜"}</span>
+          </GhostBlue>
 
-          <label htmlFor="endAtPicker" onClick={() => openNativePicker(endRef)}>
-            <GhostRed
-              type="button"
-              $active={!!endAt}     // ✅ 값이 있으면 강조
-            >
-              <FiCalendar />
-              {endAt ? "종료 선택됨" : "종료날짜"}
-            </GhostRed>
-          </label>
+          <GhostRed
+            as="button"
+            type="button"
+            title="종료날짜 선택"
+            onClick={() => openNativePicker("endAtPicker")}
+          >
+            <FiCalendar />
+            <span>{endAt ? "종료 선택됨" : "종료날짜"}</span>
+          </GhostRed>
         </BtnRow>
 
         <HiddenDateTime
           id="startAtPicker"
+          name="start_at"
           ref={startRef}
           type="datetime-local"
           value={startAt}
@@ -268,6 +265,7 @@ export default function AdminPost() {
         />
         <HiddenDateTime
           id="endAtPicker"
+          name="end_at"
           ref={endRef}
           type="datetime-local"
           value={endAt}
