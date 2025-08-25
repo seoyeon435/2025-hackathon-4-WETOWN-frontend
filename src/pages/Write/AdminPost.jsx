@@ -26,17 +26,12 @@ import {
 
 const API_BASE = import.meta.env.VITE_BASE_URL;
 
-/**
- * 인증 API
- * POST `${API_BASE}/surveys/verify-code`  -> { valid, agency_id, agency_name }
- * (예: { "valid": true, "agency_id": 1, "agency_name": "장충동 주민센터" })
- */
-
 export default function AdminPost() {
   const navigate = useNavigate();
 
   const [orgCode, setOrgCode] = useState("");
   const [orgName, setOrgName] = useState("");
+  const [agencyId, setAgencyId] = useState(null); // ✅ 추가
   const [verifyState, setVerifyState] = useState("idle"); // idle | checking | ok | fail | format
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -51,15 +46,15 @@ export default function AdminPost() {
     [orgCode]
   );
 
-  // iOS 사파리 대응: showPicker 미지원/제한 시 포커스/클릭 폴백
+  // iOS 사파리 대응
   const openNativePicker = (ref) => {
     const el = ref.current;
     if (!el) return;
     try {
       if (typeof el.showPicker === "function") {
-        el.showPicker(); // 크롬/안드로이드
+        el.showPicker();
       } else {
-        el.focus();      // iOS 사파리 폴백
+        el.focus();
         el.click();
       }
     } catch {
@@ -73,11 +68,13 @@ export default function AdminPost() {
     if (!orgCode) {
       setVerifyState("idle");
       setOrgName("");
+      setAgencyId(null);
       return;
     }
     if (!isCodeFormatOk) {
       setVerifyState("format");
       setOrgName("");
+      setAgencyId(null);
       return;
     }
     setVerifyState("checking");
@@ -91,13 +88,16 @@ export default function AdminPost() {
         if (data?.valid) {
           setVerifyState("ok");
           setOrgName(data?.agency_name ?? "");
+          setAgencyId(data?.agency_id ?? null); // ✅ agency_id 저장
         } else {
           setVerifyState("fail");
           setOrgName("");
+          setAgencyId(null);
         }
       } catch {
         setVerifyState("fail");
         setOrgName("");
+        setAgencyId(null);
       }
     }, 450);
 
@@ -117,24 +117,37 @@ export default function AdminPost() {
 
     const payload = {
       title,
-      content,
+      description: content,
       start_at: startAt.length === 16 ? `${startAt}:00` : startAt,
       end_at: endAt.length === 16 ? `${endAt}:00` : endAt,
-      org_code: orgCode,
+      code: orgCode,      // ✅ 서버가 요구하는 필드
+      // agency: agencyId  // 필요없을 수 있음 → 서버에서 code로 agency 연결
     };
 
+
     try {
-      await axios.post(`${API_BASE}/admin/posts`, payload);
+      // ✅ 여기서 찍어보기
+      console.log("payload:", payload);
+
+      await axios.post(`${API_BASE}/surveys/`, payload, {
+        headers: { "Content-Type": "application/json" },
+        withCredentials: true,
+      });
+
       alert("등록되었습니다.");
       setTitle("");
       setContent("");
       setStartAt("");
       setEndAt("");
+      setOrgCode("");
+      setOrgName("");
+      setAgencyId(null);
     } catch (err) {
-      console.error(err);
+      console.error("등록 실패:", err.response?.data || err.message);
       alert("등록에 실패했습니다. 다시 시도해주세요.");
     }
   };
+
 
   const formatDT = (v) => {
     if (!v) return "";
@@ -224,34 +237,28 @@ export default function AdminPost() {
           }
         />
 
-        {/* 라벨 연결 + onClick 폴백 (display:contents 제거) */}
         <BtnRow>
-          <label
-            htmlFor="startAtPicker"
-            style={{ cursor: "pointer" }}
-            onClick={() => openNativePicker(startRef)}
-            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openNativePicker(startRef)}
-          >
-            <GhostBlue as="span" role="button" tabIndex={0}>
+          <label htmlFor="startAtPicker" onClick={() => openNativePicker(startRef)}>
+            <GhostBlue
+              type="button"
+              $active={!!startAt}   // ✅ 값이 있으면 강조
+            >
               <FiCalendar />
-              <span>시작날짜</span>
+              {startAt ? "시작 선택됨" : "시작날짜"}
             </GhostBlue>
           </label>
 
-          <label
-            htmlFor="endAtPicker"
-            style={{ cursor: "pointer" }}
-            onClick={() => openNativePicker(endRef)}
-            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openNativePicker(endRef)}
-          >
-            <GhostRed as="span" role="button" tabIndex={0}>
+          <label htmlFor="endAtPicker" onClick={() => openNativePicker(endRef)}>
+            <GhostRed
+              type="button"
+              $active={!!endAt}     // ✅ 값이 있으면 강조
+            >
               <FiCalendar />
-              <span>종료날짜</span>
+              {endAt ? "종료 선택됨" : "종료날짜"}
             </GhostRed>
           </label>
         </BtnRow>
 
-        {/* 숨겨진 datetime-local 입력 (DOM에 존재하며, 뷰포트 안에 있어야 iOS에서 안정적) */}
         <HiddenDateTime
           id="startAtPicker"
           ref={startRef}
