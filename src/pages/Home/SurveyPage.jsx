@@ -144,11 +144,11 @@ export default function SurveyPage() {
         onClick={() => navigate("/write/admin")}
         style={{
           position: "fixed",
-          left: "50%",
+          left: "80%",
           transform: "translateX(-50%)",
-          bottom: "200px",
+          bottom: "100px",
           zIndex: 20,
-          width: "140px",
+          width: "110px",
           height: "44px",
           border: "none",
           borderRadius: "999px",

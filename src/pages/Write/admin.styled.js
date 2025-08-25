@@ -154,30 +154,47 @@ export const Textarea = styled.textarea`
 
 export const BtnRow = styled.div`
   display: flex;
-  gap: 10px;
-  margin-top: 8px;
+  gap: 16px;          /* 버튼 간격 넓힘 */
+  margin-top: 12px;
+  justify-content: center;
 `;
+
 
 export const GhostBlue = styled.button`
   flex: 1;
-  height: 40px;
-  border-radius: 24px;
+  min-width: 140px;   /* ✅ 버튼 크기 확대 */
+  height: 48px;       /* ✅ 높이 키움 */
+  border-radius: 12px;
   border: none;
-  background: #e8f0ff;
-  color: #356aff;
-  font-weight: 800;
-  font-size: 14px;
+  background: ${({ $active }) => ($active ? "#2C917B" : "#e8f0ff")};
+  color: ${({ $active }) => ($active ? "#fff" : "#356aff")};
+  font-weight: 700;
+  font-size: 15px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.04);
+  gap: 8px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+
+  svg {
+    font-size: 18px;
+  }
+
+  &:hover {
+    background: ${({ $active }) => ($active ? "#267866" : "#d0e0ff")};
+  }
 `;
 
 export const GhostRed = styled(GhostBlue)`
-  background: #ffe8e8;
-  color: #ff5a64;
+  background: ${({ $active }) => ($active ? "#d64545" : "#ffe8e8")};
+  color: ${({ $active }) => ($active ? "#fff" : "#ff5a64")};
+
+  &:hover {
+    background: ${({ $active }) => ($active ? "#b73737" : "#ffd6d6")};
+  }
 `;
+
 
 export const HiddenDateTime = styled.input`
   position: absolute;
