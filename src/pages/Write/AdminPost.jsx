@@ -19,7 +19,6 @@ import {
   BtnRow,
   GhostBlue,
   GhostRed,
-  HiddenDateTime,
   SubmitBtn,
   BottomSpacer,
 } from "./admin.styled";
@@ -45,23 +44,6 @@ export default function AdminPost() {
     () => /^[A-Za-z0-9]+$/.test(orgCode || ""),
     [orgCode]
   );
-
-  // ✅ datetime-local 기본 UI 열기 (iOS 대응)
-  const openNativePicker = (refId) => {
-    const el = document.getElementById(refId);
-    if (!el) return;
-    try {
-      if (typeof el.showPicker === "function") {
-        el.showPicker(); // 크롬, 안드로이드
-      } else {
-        el.focus();      // iOS 사파리 폴백
-        el.click();
-      }
-    } catch {
-      el.focus();
-      el.click();
-    }
-  };
 
   // 인증코드 자동 검증 (debounce)
   useEffect(() => {
@@ -120,7 +102,7 @@ export default function AdminPost() {
       description: content,
       start_at: startAt.length === 16 ? `${startAt}:00` : startAt,
       end_at: endAt.length === 16 ? `${endAt}:00` : endAt,
-      code: orgCode, // ✅ 서버 요구 필드
+      code: orgCode,
     };
 
     try {
@@ -151,6 +133,24 @@ export default function AdminPost() {
     const [y, m, dd] = d.split("-");
     const hhmm = t?.slice(0, 5);
     return `${y}.${m.padStart(2, "0")}.${dd} ${hhmm}`;
+  };
+
+  // 투명 오버레이 인풋 공통 스타일
+  const overlayInputStyle = {
+    position: "absolute",
+    inset: 0,
+    width: "100%",
+    height: "100%",
+    opacity: 0,
+    cursor: "pointer",
+    // 일부 브라우저에서 라벨 클릭 전달 보장
+    background: "transparent",
+    border: 0,
+    margin: 0,
+    padding: 0,
+    // iOS에서 터치 영역 문제 방지
+    WebkitAppearance: "none",
+    appearance: "none",
   };
 
   return (
@@ -235,42 +235,49 @@ export default function AdminPost() {
 
         <BtnRow style={{ gap: 10 }}>
           <GhostBlue
-            as="button"
-            type="button"
+            as="label"
+            htmlFor="startAtPicker"
             title="시작날짜 선택"
-            onClick={() => openNativePicker("startAtPicker")}
+            style={{ position: "relative", overflow: "hidden" }}
           >
             <FiCalendar />
             <span>{startAt ? "시작 선택됨" : "시작날짜"}</span>
+            <input
+              id="startAtPicker"
+              name="start_at"
+              ref={startRef}
+              type="datetime-local"
+              value={startAt}
+              onChange={(e) => setStartAt(e.target.value)}
+              onMouseDown={(e) => {
+                try { e.currentTarget.showPicker?.(); } catch {}
+              }}
+              style={overlayInputStyle}
+            />
           </GhostBlue>
 
           <GhostRed
-            as="button"
-            type="button"
+            as="label"
+            htmlFor="endAtPicker"
             title="종료날짜 선택"
-            onClick={() => openNativePicker("endAtPicker")}
+            style={{ position: "relative", overflow: "hidden" }}
           >
             <FiCalendar />
             <span>{endAt ? "종료 선택됨" : "종료날짜"}</span>
+            <input
+              id="endAtPicker"
+              name="end_at"
+              ref={endRef}
+              type="datetime-local"
+              value={endAt}
+              onChange={(e) => setEndAt(e.target.value)}
+              onMouseDown={(e) => {
+                try { e.currentTarget.showPicker?.(); } catch {}
+              }}
+              style={overlayInputStyle}
+            />
           </GhostRed>
         </BtnRow>
-
-        <HiddenDateTime
-          id="startAtPicker"
-          name="start_at"
-          ref={startRef}
-          type="datetime-local"
-          value={startAt}
-          onChange={(e) => setStartAt(e.target.value)}
-        />
-        <HiddenDateTime
-          id="endAtPicker"
-          name="end_at"
-          ref={endRef}
-          type="datetime-local"
-          value={endAt}
-          onChange={(e) => setEndAt(e.target.value)}
-        />
       </Field>
 
       <SubmitBtn type="submit" disabled={!canSubmit}>
